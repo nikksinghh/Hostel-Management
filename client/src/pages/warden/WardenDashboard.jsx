@@ -146,18 +146,20 @@ const WardenDashboard = () => {
     try {
       await api.put(`/warden/leaves/${leaveId}`, {
         status,
-        warden_remarks: leaveRemarks || `Leave request ${status} by Warden`,
+        warden_remarks: leaveRemarks,
       });
       setSelectedLeaveForAction(null);
       setLeaveRemarks('');
       loadWardenData();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to action leave');
+      alert(err.response?.data?.message || 'Failed to review leave application');
     }
   };
 
   const handleActionComplaint = async (e) => {
     e.preventDefault();
+    if (!selectedComplaintForAction) return;
+
     try {
       await api.put(`/warden/complaints/${selectedComplaintForAction._id}`, {
         status: complaintStatus,
@@ -167,36 +169,76 @@ const WardenDashboard = () => {
       setComplaintRemarks('');
       loadWardenData();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update complaint');
+      alert(err.response?.data?.message || 'Failed to update complaint status');
     }
   };
 
   const handleActionRoomRequest = async (status) => {
+    if (!selectedRoomReqForAction) return;
+    if (status === 'Approved' && !targetRoomId) {
+      alert('Please select an available target room to complete room allocation');
+      return;
+    }
+
     try {
-      if (status === 'Approved' && !targetRoomId) {
-        alert('Please select a target room for allocation.');
-        return;
-      }
       await api.put(`/warden/room-requests/${selectedRoomReqForAction._id}`, {
         status,
-        room_id: targetRoomId,
-        remarks: roomReqRemarks,
+        target_room_id: targetRoomId || undefined,
+        admin_remarks: roomReqRemarks,
       });
       setSelectedRoomReqForAction(null);
       setTargetRoomId('');
       setRoomReqRemarks('');
       loadWardenData();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update room request');
+      alert(err.response?.data?.message || 'Failed to action room transfer request');
     }
   };
 
-  const handleResolveSos = async (sosId) => {
+  const handleSaveMessMeal = async (mealType) => {
     try {
-      await api.put(`/warden/sos/${sosId}`, { status: 'Resolved' });
+      await api.post('/warden/mess-menu', {
+        day_of_week: selectedDay,
+        meal_type: mealType,
+        menu_item: mealInput[mealType] || 'Standard Menu',
+      });
+      alert(`${mealType} menu updated successfully for ${selectedDay}!`);
       loadWardenData();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to resolve SOS');
+      alert(err.response?.data?.message || 'Failed to update mess meal');
+    }
+  };
+
+  const handleSaveNoticeWarden = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/notices', noticeForm);
+      setIsNoticeModalOpen(false);
+      setNoticeForm({ title: '', content: '', category: 'General', is_pinned: false });
+      loadWardenData();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to post circular notice');
+    }
+  };
+
+  const handleDeleteNoticeWarden = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this notice?')) return;
+    try {
+      await api.delete(`/notices/${id}`);
+      loadWardenData();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete notice');
+    }
+  };
+
+  const handleResolveSos = async (alertId) => {
+    try {
+      await api.put(`/warden/sos/${alertId}/resolve`, {
+        resolution_notes: 'Acknowledged and addressed by duty warden on site.',
+      });
+      loadWardenData();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to resolve emergency alert');
     }
   };
 
@@ -213,12 +255,12 @@ const WardenDashboard = () => {
       setRoomForm({ room_number: '', room_type: 'Double', total_beds: '2' });
       loadWardenData();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to save room');
+      alert(err.response?.data?.message || 'Failed to save room details');
     }
   };
 
   const handleDeleteRoom = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this room?')) return;
+    if (!window.confirm('Delete this room from hostel inventory?')) return;
     try {
       await api.delete(`/warden/rooms/${id}`);
       loadWardenData();
@@ -227,114 +269,76 @@ const WardenDashboard = () => {
     }
   };
 
-  const handleSaveMessMeal = async (mealType) => {
-    try {
-      await api.post('/warden/mess-menu', {
-        day_of_week: selectedDay,
-        meal_type: mealType,
-        menu_item: mealInput[mealType],
-      });
-      alert(`${mealType} menu updated for ${selectedDay}!`);
-      loadWardenData();
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update meal');
-    }
-  };
-
   const handleIssueFine = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/warden/payments/fine', fineForm);
-      alert('Fine / Fee Invoice issued to student!');
+      await api.post('/warden/fines', fineForm);
+      alert('Fine invoice dispatched to student account.');
       setIsFineModalOpen(false);
       setFineForm({ student_id: '', amount: '200', fine_type: 'Late Entry', description: '' });
       loadWardenData();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to issue fine');
+      alert(err.response?.data?.message || 'Failed to issue fine invoice');
     }
   };
 
-  const handleSaveNoticeWarden = async (e) => {
-    e.preventDefault();
-    try {
-      await api.post('/notices', {
-        ...noticeForm,
-      });
-      setIsNoticeModalOpen(false);
-      setNoticeForm({ title: '', content: '', category: 'General', is_pinned: false });
-      loadWardenData();
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to post notice');
-    }
-  };
-
-  const handleDeleteNoticeWarden = async (id) => {
-    if (!window.confirm('Delete this notice?')) return;
-    try {
-      await api.delete(`/notices/${id}`);
-      loadWardenData();
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete notice');
-    }
-  };
-
-  const activeSosList = sosAlerts.filter((s) => s.status === 'Active');
-  const availableRooms = rooms.filter((r) => r.available_beds > 0);
+  // Filter students by query
   const filteredStudents = students.filter(
     (s) =>
-      !searchStudent ||
       s.full_name?.toLowerCase().includes(searchStudent.toLowerCase()) ||
       s.roll_number?.toLowerCase().includes(searchStudent.toLowerCase()) ||
       s.department?.toLowerCase().includes(searchStudent.toLowerCase())
   );
 
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <div className="bg-mesh" />
-      <Navbar sosActiveCount={activeSosList.length} />
+  const availableRooms = rooms.filter((r) => r.available_beds > 0);
+  const activeSosList = sosAlerts.filter((s) => s.status === 'Active');
 
-      <main style={{ maxWidth: '1440px', margin: '0 auto', padding: '1.75rem 1.5rem', width: '100%', flex: 1 }}>
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-main)' }}>
+      <Navbar />
+
+      <main style={{ flex: 1, padding: '2rem 1.5rem', maxWidth: '1440px', width: '100%', margin: '0 auto' }}>
         
-        {/* Hostel Header Banner */}
-        <div className="glass-card" style={{
-          padding: '1.5rem 2rem',
+        {/* Warden Top Header Card */}
+        <div className="card" style={{
+          padding: '1.75rem 2rem',
           marginBottom: '2rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '1.25rem',
-          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%)',
-          border: '1px solid rgba(245, 158, 11, 0.25)'
         }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>
-              <span className="badge badge-warning">Hostel Warden Portal</span>
-              {stats?.blockNumber && <span className="badge badge-info">{stats.blockNumber}</span>}
-              {stats?.hostelType && <span className="badge badge-purple">{stats.hostelType}</span>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+              <span className="badge badge-indigo">Hostel Warden Portal</span>
+              {stats?.blockNumber && <span className="badge badge-teal">Block {stats.blockNumber}</span>}
+              {stats?.hostelType && <span className="badge badge-purple">{stats.hostelType} Hostel</span>}
             </div>
-            <h1 style={{ fontSize: '1.75rem', color: '#ffffff' }}>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
               {stats?.hostelName || 'Hostel Supervision Dashboard'}
             </h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
-              Real-time student attendance monitoring, room allotments, leaves & emergency response
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0.35rem 0 0 0' }}>
+              Real-time student attendance monitoring, room allotments, leave approvals & emergency response
             </p>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <button
               onClick={() => setIsFineModalOpen(true)}
-              className="btn btn-secondary btn-sm"
+              className="btn-secondary"
+              style={{ padding: '0.55rem 1rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
             >
               <DollarSign size={16} />
               <span>Issue Fine</span>
             </button>
             <button
               onClick={loadWardenData}
-              className="btn btn-primary btn-sm"
+              className="btn-primary"
+              style={{ padding: '0.55rem 1rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
               disabled={loading}
             >
-              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              <RefreshCw size={15} className={loading ? 'spin-anim' : ''} />
               <span>Refresh</span>
             </button>
           </div>
@@ -401,14 +405,14 @@ const WardenDashboard = () => {
           </div>
         )}
 
-        {/* Navigation Tabs */}
+        {/* Navigation Tabs Bar */}
         <div style={{
           display: 'flex',
-          gap: '0.5rem',
+          gap: '0.35rem',
           borderBottom: '1px solid var(--border-color)',
           marginBottom: '1.75rem',
           overflowX: 'auto',
-          paddingBottom: '0.5rem'
+          paddingBottom: '0.25rem'
         }}>
           {[
             { id: 'attendance', label: 'Daily Attendance', icon: CheckCircle2 },
@@ -420,27 +424,32 @@ const WardenDashboard = () => {
             { id: 'sos', label: `SOS Alerts (${activeSosList.length})`, icon: ShieldAlert },
             { id: 'mess', label: 'Mess Menu', icon: Utensils },
             { id: 'notices', label: 'Notices', icon: Megaphone },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+          ].map((t) => {
+            const Icon = t.icon;
+            const isActive = activeTab === t.id;
             return (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className="btn btn-ghost"
+                key={t.id}
+                onClick={() => setActiveTab(t.id)}
                 style={{
-                  background: isActive ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
-                  color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                  borderBottom: isActive ? '2px solid #f59e0b' : '2px solid transparent',
-                  borderRadius: 'var(--radius-md) var(--radius-md) 0 0',
+                  background: isActive ? '#EEF2FF' : 'transparent',
+                  color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
+                  border: 'none',
+                  borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                  borderRadius: '8px 8px 0 0',
                   fontWeight: isActive ? 700 : 500,
-                  fontSize: '0.88rem',
+                  fontSize: '0.875rem',
                   padding: '0.65rem 1rem',
-                  whiteSpace: 'nowrap'
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'var(--transition)'
                 }}
               >
-                <Icon size={16} color={isActive ? '#f59e0b' : 'currentColor'} />
-                <span>{tab.label}</span>
+                <Icon size={16} color={isActive ? 'var(--primary)' : 'currentColor'} />
+                <span>{t.label}</span>
               </button>
             );
           })}
@@ -448,16 +457,16 @@ const WardenDashboard = () => {
 
         {/* TAB 1: ATTENDANCE */}
         {activeTab === 'attendance' && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <h2 style={{ fontSize: '1.3rem', color: '#ffffff' }}>Attendance Roster</h2>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Attendance Roster</h2>
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   className="form-input"
-                  style={{ padding: '0.45rem 0.75rem', width: 'auto' }}
+                  style={{ padding: '0.4rem 0.75rem', width: 'auto', fontSize: '0.875rem' }}
                 />
               </div>
 
@@ -478,11 +487,11 @@ const WardenDashboard = () => {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Student Name</th>
+                    <th>Student Resident</th>
                     <th>Roll Number</th>
                     <th>Room</th>
                     <th>Status</th>
-                    <th>Marked Method</th>
+                    <th>Method</th>
                     <th>Timestamp</th>
                     <th style={{ textAlign: 'right' }}>Quick Toggle</th>
                   </tr>
@@ -490,44 +499,68 @@ const WardenDashboard = () => {
                 <tbody>
                   {roster.map((student) => (
                     <tr key={student.studentId}>
-                      <td style={{ fontWeight: 600, color: '#ffffff' }}>{student.fullName}</td>
-                      <td>{student.rollNumber}</td>
+                      <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{student.fullName}</td>
+                      <td style={{ fontFamily: 'monospace' }}>{student.rollNumber}</td>
                       <td>
-                        <span className="badge badge-info">{student.roomNumber}</span>
+                        <span className="badge badge-indigo">Room {student.roomNumber}</span>
                       </td>
                       <td>
                         <span className={`badge ${student.status === 'Present' ? 'badge-success' : student.status === 'Leave' ? 'badge-warning' : 'badge-danger'}`}>
                           {student.status}
                         </span>
                       </td>
-                      <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                         {student.markedBy || 'Unmarked'}
                       </td>
-                      <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                         {student.markedAt ? new Date(student.markedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
                           <button
                             onClick={() => handleMarkAttendance(student.studentId, 'Present')}
-                            className={`btn btn-sm ${student.status === 'Present' ? 'btn-success' : 'btn-ghost'}`}
-                            style={{ padding: '0.3rem 0.6rem' }}
+                            style={{
+                              padding: '0.3rem 0.65rem',
+                              borderRadius: '6px',
+                              border: student.status === 'Present' ? '1px solid var(--success)' : '1px solid var(--border-color)',
+                              background: student.status === 'Present' ? '#ECFDF5' : '#FFFFFF',
+                              color: student.status === 'Present' ? 'var(--success)' : 'var(--text-secondary)',
+                              fontWeight: 700,
+                              fontSize: '0.8rem',
+                              cursor: 'pointer'
+                            }}
                             title="Mark Present"
                           >
                             P
                           </button>
                           <button
                             onClick={() => handleMarkAttendance(student.studentId, 'Absent')}
-                            className={`btn btn-sm ${student.status === 'Absent' ? 'btn-danger' : 'btn-ghost'}`}
-                            style={{ padding: '0.3rem 0.6rem' }}
+                            style={{
+                              padding: '0.3rem 0.65rem',
+                              borderRadius: '6px',
+                              border: student.status === 'Absent' ? '1px solid var(--danger)' : '1px solid var(--border-color)',
+                              background: student.status === 'Absent' ? '#FEF2F2' : '#FFFFFF',
+                              color: student.status === 'Absent' ? 'var(--danger)' : 'var(--text-secondary)',
+                              fontWeight: 700,
+                              fontSize: '0.8rem',
+                              cursor: 'pointer'
+                            }}
                             title="Mark Absent"
                           >
                             A
                           </button>
                           <button
                             onClick={() => handleMarkAttendance(student.studentId, 'Leave')}
-                            className={`btn btn-sm ${student.status === 'Leave' ? 'btn-warning' : 'btn-ghost'}`}
-                            style={{ padding: '0.3rem 0.6rem' }}
+                            style={{
+                              padding: '0.3rem 0.65rem',
+                              borderRadius: '6px',
+                              border: student.status === 'Leave' ? '1px solid var(--warning)' : '1px solid var(--border-color)',
+                              background: student.status === 'Leave' ? '#FEF3C7' : '#FFFFFF',
+                              color: student.status === 'Leave' ? 'var(--warning)' : 'var(--text-secondary)',
+                              fontWeight: 700,
+                              fontSize: '0.8rem',
+                              cursor: 'pointer'
+                            }}
                             title="Mark Leave"
                           >
                             L
@@ -538,8 +571,8 @@ const WardenDashboard = () => {
                   ))}
                   {roster.length === 0 && (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                        No resident students enrolled in this hostel.
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                        No resident students enrolled in this hostel block.
                       </td>
                     </tr>
                   )}
@@ -551,18 +584,18 @@ const WardenDashboard = () => {
 
         {/* TAB 2: RESIDENT STUDENTS */}
         {activeTab === 'students' && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
-              <h2 style={{ fontSize: '1.3rem', color: '#ffffff' }}>Hostel Residents Roster</h2>
-              <div style={{ position: 'relative', width: '320px' }}>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Hostel Residents Roster</h2>
+              <div style={{ position: 'relative', width: '300px' }}>
                 <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type="text"
-                  placeholder="Search by name, roll, dept..."
+                  placeholder="Search name, roll, dept..."
                   value={searchStudent}
                   onChange={(e) => setSearchStudent(e.target.value)}
                   className="form-input"
-                  style={{ paddingLeft: '2.4rem' }}
+                  style={{ paddingLeft: '2.4rem', fontSize: '0.875rem' }}
                 />
               </div>
             </div>
@@ -584,24 +617,24 @@ const WardenDashboard = () => {
                   {filteredStudents.map((s) => (
                     <tr key={s._id}>
                       <td>
-                        <div style={{ fontWeight: 600, color: '#ffffff' }}>{s.full_name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.email}</div>
+                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{s.full_name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{s.email}</div>
                       </td>
                       <td>
-                        <div>{s.roll_number}</div>
-                        {s.drcc_id && <div style={{ fontSize: '0.72rem', color: '#a5b4fc' }}>DRCC: {s.drcc_id}</div>}
+                        <div style={{ fontFamily: 'monospace', fontWeight: 600 }}>{s.roll_number}</div>
+                        {s.drcc_id && <div style={{ fontSize: '0.72rem', color: 'var(--primary)' }}>DRCC: {s.drcc_id}</div>}
                       </td>
                       <td>{s.department}</td>
                       <td>
                         {s.room ? (
-                          <span className="badge badge-purple">{s.room.room_number} ({s.room.room_type})</span>
+                          <span className="badge badge-indigo">Room {s.room.room_number} ({s.room.room_type})</span>
                         ) : (
                           <span className="badge badge-warning">Unassigned</span>
                         )}
                       </td>
                       <td style={{ fontSize: '0.82rem' }}>
                         <div>📞 {s.phone || 'N/A'}</div>
-                        {s.emergency_contact && <div style={{ fontSize: '0.75rem', color: '#f87171' }}>SOS: {s.emergency_contact}</div>}
+                        {s.emergency_contact && <div style={{ fontSize: '0.75rem', color: 'var(--danger)' }}>SOS: {s.emergency_contact}</div>}
                       </td>
                       <td>
                         {s.hasActiveLeave ? (
@@ -621,7 +654,7 @@ const WardenDashboard = () => {
                   ))}
                   {filteredStudents.length === 0 && (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
                         No resident students match the search criteria.
                       </td>
                     </tr>
@@ -636,14 +669,15 @@ const WardenDashboard = () => {
         {activeTab === 'rooms' && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.3rem', color: '#ffffff' }}>Rooms & Bed Capacity</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Rooms & Bed Capacity</h2>
               <button
                 onClick={() => {
                   setEditingRoomId(null);
                   setRoomForm({ room_number: '', room_type: 'Double', total_beds: '2' });
                   setIsRoomModalOpen(true);
                 }}
-                className="btn btn-primary btn-sm"
+                className="btn-primary"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', fontSize: '0.875rem' }}
               >
                 <Plus size={16} />
                 <span>Add Room</span>
@@ -652,13 +686,13 @@ const WardenDashboard = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
               {rooms.map((room) => (
-                <div key={room._id} className="glass-card" style={{ padding: '1.25rem' }}>
+                <div key={room._id} className="card" style={{ padding: '1.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#ffffff' }}>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                         Room {room.room_number}
                       </span>
-                      <span className="badge badge-info">{room.room_type}</span>
+                      <span className="badge badge-indigo">{room.room_type}</span>
                     </div>
                     <div style={{ display: 'flex', gap: '0.35rem' }}>
                       <button
@@ -671,43 +705,45 @@ const WardenDashboard = () => {
                           });
                           setIsRoomModalOpen(true);
                         }}
-                        className="btn btn-ghost btn-sm"
-                        style={{ padding: '0.35rem', color: '#818cf8' }}
+                        className="btn-secondary"
+                        style={{ padding: '0.35rem 0.5rem' }}
+                        title="Edit Room"
                       >
-                        <Edit size={16} />
+                        <Edit size={14} />
                       </button>
                       <button
                         onClick={() => handleDeleteRoom(room._id)}
-                        className="btn btn-ghost btn-sm"
-                        style={{ padding: '0.35rem', color: '#f87171' }}
+                        className="btn-danger"
+                        style={{ padding: '0.35rem 0.5rem' }}
+                        title="Delete Room"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.75rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Capacity: {room.total_beds} Beds</span>
-                    <span style={{ fontWeight: 700, color: room.available_beds > 0 ? '#34d399' : '#f87171' }}>
+                    <span style={{ fontWeight: 700, color: room.available_beds > 0 ? 'var(--success)' : 'var(--danger)' }}>
                       {room.available_beds} Vacant
                     </span>
                   </div>
 
                   <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       Current Occupants ({room.occupants?.length || 0}):
                     </div>
                     {room.occupants && room.occupants.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                         {room.occupants.map((occ) => (
-                          <div key={occ._id} style={{ fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between', color: '#ffffff' }}>
-                            <span>{occ.full_name} ({occ.roll_number})</span>
-                            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{occ.department}</span>
+                          <div key={occ._id} style={{ fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', color: 'var(--text-primary)' }}>
+                            <span style={{ fontWeight: 600 }}>{occ.full_name} ({occ.roll_number})</span>
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.78rem' }}>{occ.department}</span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Room is currently unoccupied</div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Room is unoccupied</div>
                     )}
                   </div>
                 </div>
@@ -718,10 +754,12 @@ const WardenDashboard = () => {
 
         {/* TAB 4: LEAVES */}
         {activeTab === 'leaves' && (
-          <div>
-            <h2 style={{ fontSize: '1.3rem', color: '#ffffff', marginBottom: '1.25rem' }}>
-              Student Outstation & Leave Requests
-            </h2>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                Student Outstation & Leave Requests
+              </h2>
+            </div>
 
             <div className="table-container">
               <table className="data-table">
@@ -731,7 +769,7 @@ const WardenDashboard = () => {
                     <th>Leave Dates</th>
                     <th>Reason</th>
                     <th>Status</th>
-                    <th>Action By / Remarks</th>
+                    <th>Action Remarks</th>
                     <th style={{ textAlign: 'right' }}>Action</th>
                   </tr>
                 </thead>
@@ -739,15 +777,15 @@ const WardenDashboard = () => {
                   {leaves.map((leave) => (
                     <tr key={leave._id}>
                       <td>
-                        <div style={{ fontWeight: 600, color: '#ffffff' }}>{leave.student?.full_name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{leave.student?.full_name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                           {leave.student?.roll_number} • 📞 {leave.student?.phone}
                         </div>
                       </td>
                       <td>
-                        <span className="badge badge-info">{leave.from_date}</span> to <span className="badge badge-info">{leave.to_date}</span>
+                        <span className="badge badge-indigo">{leave.from_date}</span> to <span className="badge badge-indigo">{leave.to_date}</span>
                       </td>
-                      <td style={{ maxWidth: '280px', fontSize: '0.85rem' }}>{leave.reason}</td>
+                      <td style={{ maxWidth: '280px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{leave.reason}</td>
                       <td>
                         <span className={`badge ${leave.status === 'Approved' ? 'badge-success' : leave.status === 'Rejected' ? 'badge-danger' : 'badge-warning'}`}>
                           {leave.status}
@@ -763,7 +801,8 @@ const WardenDashboard = () => {
                               setSelectedLeaveForAction(leave);
                               setLeaveRemarks('');
                             }}
-                            className="btn btn-primary btn-sm"
+                            className="btn-primary"
+                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
                           >
                             Review
                           </button>
@@ -775,7 +814,7 @@ const WardenDashboard = () => {
                   ))}
                   {leaves.length === 0 && (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
                         No leave requests submitted.
                       </td>
                     </tr>
@@ -788,10 +827,12 @@ const WardenDashboard = () => {
 
         {/* TAB 5: COMPLAINTS */}
         {activeTab === 'complaints' && (
-          <div>
-            <h2 style={{ fontSize: '1.3rem', color: '#ffffff', marginBottom: '1.25rem' }}>
-              Maintenance & Student Grievance Tickets
-            </h2>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                Maintenance & Student Grievance Tickets
+              </h2>
+            </div>
 
             <div className="table-container">
               <table className="data-table">
@@ -810,25 +851,25 @@ const WardenDashboard = () => {
                   {complaints.map((c) => (
                     <tr key={c._id}>
                       <td>
-                        <div style={{ fontWeight: 600, color: '#ffffff' }}>{c.student?.full_name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{c.student?.full_name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                           Room: {c.student?.room?.room_number || 'N/A'} • 📞 {c.student?.phone}
                         </div>
                       </td>
                       <td>
                         <span className="badge badge-purple">{c.category}</span>
                         {c.priority && (
-                          <span className={`badge ${c.priority === 'Urgent' ? 'badge-danger' : c.priority === 'High' ? 'badge-warning' : 'badge-info'}`} style={{ marginLeft: '0.35rem' }}>
+                          <span className={`badge ${c.priority === 'Urgent' ? 'badge-danger' : c.priority === 'High' ? 'badge-warning' : 'badge-indigo'}`} style={{ marginLeft: '0.35rem' }}>
                             {c.priority}
                           </span>
                         )}
                       </td>
-                      <td style={{ maxWidth: '300px', fontSize: '0.85rem' }}>{c.description}</td>
+                      <td style={{ maxWidth: '300px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{c.description}</td>
                       <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                         {new Date(c.created_at).toLocaleDateString()}
                       </td>
                       <td>
-                        <span className={`badge ${c.status === 'Resolved' ? 'badge-success' : c.status === 'In Progress' ? 'badge-info' : 'badge-warning'}`}>
+                        <span className={`badge ${c.status === 'Resolved' ? 'badge-success' : c.status === 'In Progress' ? 'badge-indigo' : 'badge-warning'}`}>
                           {c.status}
                         </span>
                       </td>
@@ -842,7 +883,8 @@ const WardenDashboard = () => {
                             setComplaintStatus(c.status);
                             setComplaintRemarks(c.warden_remarks || '');
                           }}
-                          className="btn btn-secondary btn-sm"
+                          className="btn-secondary"
+                          style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
                         >
                           Update
                         </button>
@@ -851,8 +893,8 @@ const WardenDashboard = () => {
                   ))}
                   {complaints.length === 0 && (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                        No complaints lodged for this hostel.
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                        No complaints lodged for this hostel block.
                       </td>
                     </tr>
                   )}
@@ -864,10 +906,12 @@ const WardenDashboard = () => {
 
         {/* TAB 6: ROOM CHANGE REQUESTS */}
         {activeTab === 'room-requests' && (
-          <div>
-            <h2 style={{ fontSize: '1.3rem', color: '#ffffff', marginBottom: '1.25rem' }}>
-              Student Room Allocation & Change Requests
-            </h2>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                Student Room Allocation & Change Requests
+              </h2>
+            </div>
 
             <div className="table-container">
               <table className="data-table">
@@ -875,7 +919,7 @@ const WardenDashboard = () => {
                   <tr>
                     <th>Student Name</th>
                     <th>Current Room</th>
-                    <th>Requested Bed Type</th>
+                    <th>Requested Layout</th>
                     <th>Reason</th>
                     <th>Status</th>
                     <th>Remarks</th>
@@ -886,14 +930,14 @@ const WardenDashboard = () => {
                   {roomRequests.map((req) => (
                     <tr key={req._id}>
                       <td>
-                        <div style={{ fontWeight: 600, color: '#ffffff' }}>{req.student?.full_name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{req.student?.full_name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                           {req.student?.roll_number} • 📞 {req.student?.phone}
                         </div>
                       </td>
                       <td>
                         {req.current_room ? (
-                          <span className="badge badge-info">{req.current_room.room_number} ({req.current_room.room_type})</span>
+                          <span className="badge badge-indigo">{req.current_room.room_number} ({req.current_room.room_type})</span>
                         ) : (
                           <span className="badge badge-warning">Unallocated</span>
                         )}
@@ -901,7 +945,7 @@ const WardenDashboard = () => {
                       <td>
                         <span className="badge badge-purple">{req.preferred_room_type}</span>
                       </td>
-                      <td style={{ maxWidth: '280px', fontSize: '0.85rem' }}>{req.reason}</td>
+                      <td style={{ maxWidth: '280px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{req.reason}</td>
                       <td>
                         <span className={`badge ${req.status === 'Approved' ? 'badge-success' : req.status === 'Rejected' ? 'badge-danger' : 'badge-warning'}`}>
                           {req.status}
@@ -918,7 +962,8 @@ const WardenDashboard = () => {
                               setTargetRoomId(availableRooms[0]?._id || '');
                               setRoomReqRemarks('');
                             }}
-                            className="btn btn-primary btn-sm"
+                            className="btn-primary"
+                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
                           >
                             Allocate / Review
                           </button>
@@ -930,7 +975,7 @@ const WardenDashboard = () => {
                   ))}
                   {roomRequests.length === 0 && (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
                         No room change requests currently submitted.
                       </td>
                     </tr>
@@ -945,19 +990,21 @@ const WardenDashboard = () => {
         {activeTab === 'sos' && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.3rem', color: '#ffffff' }}>Emergency SOS Broadcasts</h2>
-              <span className="badge badge-danger">{activeSosList.length} Active Incidents</span>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Emergency SOS Broadcasts</h2>
+              <span className={`badge ${activeSosList.length > 0 ? 'badge-danger' : 'badge-success'}`}>
+                {activeSosList.length} Active Incidents
+              </span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {sosAlerts.map((sos) => (
                 <div
                   key={sos._id}
-                  className="glass-card"
+                  className="card"
                   style={{
-                    padding: '1.25rem',
-                    border: sos.status === 'Active' ? '1px solid #ef4444' : '1px solid var(--border-color)',
-                    background: sos.status === 'Active' ? 'rgba(239, 68, 68, 0.1)' : undefined,
+                    padding: '1.5rem',
+                    border: sos.status === 'Active' ? '1px solid #FECACA' : '1px solid var(--border-color)',
+                    background: sos.status === 'Active' ? '#FEF2F2' : '#FFFFFF',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
@@ -966,17 +1013,17 @@ const WardenDashboard = () => {
                         width: 44,
                         height: 44,
                         borderRadius: 12,
-                        background: sos.status === 'Active' ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)',
+                        background: sos.status === 'Active' ? '#FEE2E2' : '#ECFDF5',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: sos.status === 'Active' ? '#f87171' : '#34d399'
+                        color: sos.status === 'Active' ? 'var(--danger)' : 'var(--success)'
                       }}>
                         <ShieldAlert size={24} />
                       </div>
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                          <span style={{ fontWeight: 800, color: '#ffffff', fontSize: '1.05rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.05rem' }}>
                             {sos.student?.full_name}
                           </span>
                           <span className="badge badge-purple">Room {sos.room_number || sos.student?.room?.room_number || 'N/A'}</span>
@@ -984,10 +1031,10 @@ const WardenDashboard = () => {
                             {sos.status}
                           </span>
                         </div>
-                        <p style={{ margin: '0.25rem 0 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                        <p style={{ margin: '0.35rem 0 0', color: 'var(--text-primary)', fontSize: '0.9rem', fontWeight: 500 }}>
                           "{sos.message}"
                         </p>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>
                           📞 Student Phone: {sos.student?.phone} • Emergency Contact: {sos.student?.emergency_contact || 'N/A'} • {new Date(sos.created_at).toLocaleString()}
                         </div>
                       </div>
@@ -996,7 +1043,8 @@ const WardenDashboard = () => {
                     {sos.status === 'Active' && (
                       <button
                         onClick={() => handleResolveSos(sos._id)}
-                        className="btn btn-success btn-sm"
+                        className="btn-primary"
+                        style={{ background: 'var(--success)', borderColor: 'var(--success)', padding: '0.5rem 1rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                       >
                         <CheckCircle2 size={16} />
                         <span>Acknowledge & Resolve</span>
@@ -1006,9 +1054,9 @@ const WardenDashboard = () => {
                 </div>
               ))}
               {sosAlerts.length === 0 && (
-                <div className="glass-card" style={{ padding: '2.5rem', textAlign: 'center' }}>
-                  <CheckCircle2 size={36} color="#34d399" style={{ margin: '0 auto 1rem' }} />
-                  <p style={{ color: 'var(--text-secondary)' }}>No emergency alerts reported.</p>
+                <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
+                  <CheckCircle2 size={36} color="var(--success)" style={{ margin: '0 auto 1rem' }} />
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: 0 }}>No emergency alerts reported.</p>
                 </div>
               )}
             </div>
@@ -1020,8 +1068,8 @@ const WardenDashboard = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <h2 style={{ fontSize: '1.3rem', color: '#ffffff' }}>Hostel Mess Menu Scheduler</h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Configure nutritious meals for each day</p>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Hostel Mess Menu Scheduler</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: '0.2rem 0 0 0' }}>Configure nutritious meals for each day</p>
               </div>
 
               {/* Day Selector */}
@@ -1030,7 +1078,17 @@ const WardenDashboard = () => {
                   <button
                     key={day}
                     onClick={() => handleDayChange(day)}
-                    className={`btn btn-sm ${selectedDay === day ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{
+                      padding: '0.45rem 0.85rem',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      background: selectedDay === day ? 'var(--primary)' : '#FFFFFF',
+                      color: selectedDay === day ? '#FFFFFF' : 'var(--text-secondary)',
+                      fontSize: '0.85rem',
+                      fontWeight: selectedDay === day ? 700 : 500,
+                      cursor: 'pointer',
+                      transition: 'var(--transition)'
+                    }}
                   >
                     {day}
                   </button>
@@ -1040,13 +1098,13 @@ const WardenDashboard = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem' }}>
               {['Breakfast', 'Lunch', 'Snacks', 'Dinner'].map((meal) => (
-                <div key={meal} className="glass-card" style={{ padding: '1.5rem' }}>
+                <div key={meal} className="card" style={{ padding: '1.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                    <h3 style={{ fontSize: '1.15rem', color: '#ffffff' }}>{meal}</h3>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{meal}</h3>
                     <span className="badge badge-purple">{selectedDay}</span>
                   </div>
 
-                  <div className="form-group">
+                  <div style={{ marginBottom: '1.25rem' }}>
                     <label className="form-label">Menu Items</label>
                     <textarea
                       rows={3}
@@ -1059,7 +1117,8 @@ const WardenDashboard = () => {
 
                   <button
                     onClick={() => handleSaveMessMeal(meal)}
-                    className="btn btn-primary btn-sm w-full"
+                    className="btn-primary"
+                    style={{ width: '100%', padding: '0.55rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
                   >
                     <Send size={14} />
                     <span>Save {meal}</span>
@@ -1074,10 +1133,11 @@ const WardenDashboard = () => {
         {activeTab === 'notices' && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.3rem', color: '#ffffff' }}>Hostel Circulars & Notices</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Hostel Circulars & Notices</h2>
               <button
                 onClick={() => setIsNoticeModalOpen(true)}
-                className="btn btn-primary btn-sm"
+                className="btn-primary"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', fontSize: '0.875rem' }}
               >
                 <Plus size={16} />
                 <span>Post Notice</span>
@@ -1086,32 +1146,33 @@ const WardenDashboard = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
               {notices.map((n) => (
-                <div key={n._id} className="glass-card" style={{ padding: '1.5rem', border: n.is_pinned ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-color)' }}>
+                <div key={n._id} className="card" style={{ padding: '1.5rem', border: n.is_pinned ? '1px solid #FCD34D' : '1px solid var(--border-color)', background: n.is_pinned ? '#FFFDF5' : '#FFFFFF' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
-                      <span className="badge badge-info">{n.category}</span>
+                      <span className="badge badge-indigo">{n.category}</span>
                       {n.is_pinned && <span className="badge badge-warning">📌 Pinned</span>}
                     </div>
                     <button
                       onClick={() => handleDeleteNoticeWarden(n._id)}
-                      className="btn btn-ghost btn-sm"
-                      style={{ padding: '0.35rem', color: '#f87171' }}
+                      className="btn-danger"
+                      style={{ padding: '0.35rem 0.5rem', borderRadius: '6px' }}
+                      title="Delete notice"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
 
-                  <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '0.4rem' }}>{n.title}</h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.5, marginBottom: '1rem' }}>{n.content}</p>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{n.title}</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.25rem' }}>{n.content}</p>
 
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-color)', paddingTop: '0.65rem' }}>
-                    By: <strong>{n.posted_by}</strong> • {new Date(n.created_at).toLocaleDateString()}
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                    By: <strong style={{ color: 'var(--text-primary)' }}>{n.posted_by}</strong> • {new Date(n.created_at).toLocaleDateString()}
                   </div>
                 </div>
               ))}
               {notices.length === 0 && (
-                <div className="glass-card" style={{ padding: '2.5rem', textAlign: 'center', gridColumn: '1 / -1' }}>
-                  <Megaphone size={36} color="#818cf8" style={{ margin: '0 auto 1rem' }} />
+                <div className="card" style={{ padding: '3rem', textAlign: 'center', gridColumn: '1 / -1' }}>
+                  <Megaphone size={36} color="var(--primary)" style={{ margin: '0 auto 1rem' }} />
                   <p style={{ color: 'var(--text-secondary)' }}>No notices posted yet.</p>
                 </div>
               )}
@@ -1128,7 +1189,7 @@ const WardenDashboard = () => {
         title="Post Hostel Notice"
       >
         <form onSubmit={handleSaveNoticeWarden}>
-          <div className="form-group">
+          <div style={{ marginBottom: '1.25rem' }}>
             <label className="form-label">Notice Title *</label>
             <input
               type="text"
@@ -1140,7 +1201,7 @@ const WardenDashboard = () => {
             />
           </div>
 
-          <div className="form-group">
+          <div style={{ marginBottom: '1.25rem' }}>
             <label className="form-label">Category *</label>
             <select
               value={noticeForm.category}
@@ -1156,7 +1217,7 @@ const WardenDashboard = () => {
             </select>
           </div>
 
-          <div className="form-group">
+          <div style={{ marginBottom: '1.25rem' }}>
             <label className="form-label">Notice Message *</label>
             <textarea
               rows={4}
@@ -1168,7 +1229,7 @@ const WardenDashboard = () => {
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
             <input
               type="checkbox"
               id="wardenPinNotice"
@@ -1176,7 +1237,7 @@ const WardenDashboard = () => {
               onChange={(e) => setNoticeForm({ ...noticeForm, is_pinned: e.target.checked })}
               style={{ width: '16px', height: '16px', cursor: 'pointer' }}
             />
-            <label htmlFor="wardenPinNotice" style={{ fontSize: '0.88rem', color: '#ffffff', cursor: 'pointer' }}>
+            <label htmlFor="wardenPinNotice" style={{ fontSize: '0.88rem', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 500 }}>
               Pin this notice to top of notice board
             </label>
           </div>
@@ -1185,11 +1246,11 @@ const WardenDashboard = () => {
             <button
               type="button"
               onClick={() => setIsNoticeModalOpen(false)}
-              className="btn btn-secondary"
+              className="btn-secondary"
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
+            <button type="submit" className="btn-primary">
               Publish Notice
             </button>
           </div>
@@ -1203,7 +1264,7 @@ const WardenDashboard = () => {
         title={editingRoomId ? 'Edit Room' : 'Add New Room'}
       >
         <form onSubmit={handleSaveRoom}>
-          <div className="form-group">
+          <div style={{ marginBottom: '1.25rem' }}>
             <label className="form-label">Room Number *</label>
             <input
               type="text"
@@ -1215,8 +1276,8 @@ const WardenDashboard = () => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="form-group">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div>
               <label className="form-label">Room Type *</label>
               <select
                 value={roomForm.room_type}
@@ -1231,7 +1292,7 @@ const WardenDashboard = () => {
               </select>
             </div>
 
-            <div className="form-group">
+            <div>
               <label className="form-label">Total Bed Capacity *</label>
               <input
                 type="number"
@@ -1244,15 +1305,15 @@ const WardenDashboard = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
             <button
               type="button"
               onClick={() => setIsRoomModalOpen(false)}
-              className="btn btn-secondary"
+              className="btn-secondary"
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
+            <button type="submit" className="btn-primary">
               Save Room
             </button>
           </div>
@@ -1267,17 +1328,17 @@ const WardenDashboard = () => {
       >
         {selectedLeaveForAction && (
           <div>
-            <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem' }}>
-              <div style={{ fontWeight: 600, color: '#ffffff' }}>{selectedLeaveForAction.student?.full_name}</div>
-              <div style={{ fontSize: '0.85rem', color: '#a5b4fc', marginTop: '0.2rem' }}>
+            <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '1.25rem' }}>
+              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{selectedLeaveForAction.student?.full_name}</div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--primary)', marginTop: '0.2rem', fontWeight: 600 }}>
                 Duration: {selectedLeaveForAction.from_date} to {selectedLeaveForAction.to_date}
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                <strong>Reason:</strong> {selectedLeaveForAction.reason}
+                <strong style={{ color: 'var(--text-primary)' }}>Reason:</strong> {selectedLeaveForAction.reason}
               </div>
             </div>
 
-            <div className="form-group">
+            <div style={{ marginBottom: '1.5rem' }}>
               <label className="form-label">Warden Remarks</label>
               <textarea
                 rows={2}
@@ -1288,17 +1349,19 @@ const WardenDashboard = () => {
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
               <button
                 onClick={() => handleActionLeave(selectedLeaveForAction._id, 'Rejected')}
-                className="btn btn-danger"
+                className="btn-danger"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem' }}
               >
                 <XCircle size={16} />
                 <span>Reject</span>
               </button>
               <button
                 onClick={() => handleActionLeave(selectedLeaveForAction._id, 'Approved')}
-                className="btn btn-success"
+                className="btn-primary"
+                style={{ background: 'var(--success)', borderColor: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem' }}
               >
                 <CheckCircle2 size={16} />
                 <span>Approve Leave</span>
@@ -1316,15 +1379,15 @@ const WardenDashboard = () => {
       >
         {selectedComplaintForAction && (
           <form onSubmit={handleActionComplaint}>
-            <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem' }}>
-              <div style={{ fontWeight: 600, color: '#ffffff' }}>{selectedComplaintForAction.student?.full_name}</div>
-              <div style={{ fontSize: '0.85rem', color: '#38bdf8' }}>Category: {selectedComplaintForAction.category}</div>
+            <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '1.25rem' }}>
+              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{selectedComplaintForAction.student?.full_name}</div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 600 }}>Category: {selectedComplaintForAction.category}</div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.4rem' }}>
                 {selectedComplaintForAction.description}
               </div>
             </div>
 
-            <div className="form-group">
+            <div style={{ marginBottom: '1.25rem' }}>
               <label className="form-label">Status</label>
               <select
                 value={complaintStatus}
@@ -1338,7 +1401,7 @@ const WardenDashboard = () => {
               </select>
             </div>
 
-            <div className="form-group">
+            <div style={{ marginBottom: '1.5rem' }}>
               <label className="form-label">Resolution / Action Remarks</label>
               <textarea
                 rows={2}
@@ -1349,15 +1412,15 @@ const WardenDashboard = () => {
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
               <button
                 type="button"
                 onClick={() => setSelectedComplaintForAction(null)}
-                className="btn btn-secondary"
+                className="btn-secondary"
               >
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary">
+              <button type="submit" className="btn-primary">
                 Update Ticket
               </button>
             </div>
@@ -1373,17 +1436,17 @@ const WardenDashboard = () => {
       >
         {selectedRoomReqForAction && (
           <div>
-            <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem' }}>
-              <div style={{ fontWeight: 600, color: '#ffffff' }}>{selectedRoomReqForAction.student?.full_name}</div>
-              <div style={{ fontSize: '0.85rem', color: '#a5b4fc', marginTop: '0.2rem' }}>
+            <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '1.25rem' }}>
+              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{selectedRoomReqForAction.student?.full_name}</div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--primary)', marginTop: '0.2rem', fontWeight: 600 }}>
                 Current Room: {selectedRoomReqForAction.current_room?.room_number || 'None'} • Requested Type: {selectedRoomReqForAction.preferred_room_type}
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                <strong>Reason:</strong> {selectedRoomReqForAction.reason}
+                <strong style={{ color: 'var(--text-primary)' }}>Reason:</strong> {selectedRoomReqForAction.reason}
               </div>
             </div>
 
-            <div className="form-group">
+            <div style={{ marginBottom: '1.25rem' }}>
               <label className="form-label">Select Target Room (With Available Beds) *</label>
               <select
                 value={targetRoomId}
@@ -1399,7 +1462,7 @@ const WardenDashboard = () => {
               </select>
             </div>
 
-            <div className="form-group">
+            <div style={{ marginBottom: '1.5rem' }}>
               <label className="form-label">Reviewer Remarks</label>
               <textarea
                 rows={2}
@@ -1410,11 +1473,12 @@ const WardenDashboard = () => {
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
               <button
                 type="button"
                 onClick={() => handleActionRoomRequest('Rejected')}
-                className="btn btn-danger"
+                className="btn-danger"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem' }}
               >
                 <XCircle size={16} />
                 <span>Reject</span>
@@ -1422,7 +1486,8 @@ const WardenDashboard = () => {
               <button
                 type="button"
                 onClick={() => handleActionRoomRequest('Approved')}
-                className="btn btn-success"
+                className="btn-primary"
+                style={{ background: 'var(--success)', borderColor: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem' }}
               >
                 <CheckCircle2 size={16} />
                 <span>Approve & Transfer</span>
@@ -1439,7 +1504,7 @@ const WardenDashboard = () => {
         title="Issue Fine / Fee Invoice"
       >
         <form onSubmit={handleIssueFine}>
-          <div className="form-group">
+          <div style={{ marginBottom: '1.25rem' }}>
             <label className="form-label">Select Resident Student *</label>
             <select
               required
@@ -1456,8 +1521,8 @@ const WardenDashboard = () => {
             </select>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="form-group">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+            <div>
               <label className="form-label">Fine Type *</label>
               <select
                 value={fineForm.fine_type}
@@ -1473,7 +1538,7 @@ const WardenDashboard = () => {
               </select>
             </div>
 
-            <div className="form-group">
+            <div>
               <label className="form-label">Amount (₹) *</label>
               <input
                 type="number"
@@ -1486,7 +1551,7 @@ const WardenDashboard = () => {
             </div>
           </div>
 
-          <div className="form-group">
+          <div style={{ marginBottom: '1.5rem' }}>
             <label className="form-label">Description / Reason</label>
             <input
               type="text"
@@ -1497,15 +1562,15 @@ const WardenDashboard = () => {
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
             <button
               type="button"
               onClick={() => setIsFineModalOpen(false)}
-              className="btn btn-secondary"
+              className="btn-secondary"
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
+            <button type="submit" className="btn-primary">
               Issue Invoice
             </button>
           </div>

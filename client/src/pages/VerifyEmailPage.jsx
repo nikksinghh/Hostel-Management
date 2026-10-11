@@ -122,34 +122,33 @@ const VerifyEmailPage = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <div className="bg-mesh" />
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-main)' }}>
       <Navbar />
 
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.5rem' }}>
-        <div className="glass-card" style={{ width: '100%', maxWidth: '480px', padding: '2.5rem 2rem', position: 'relative' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 1.5rem' }}>
+        <div className="card" style={{ width: '100%', maxWidth: '480px', padding: '2.5rem 2rem', boxShadow: 'var(--shadow-lg)' }}>
           
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <div style={{
-              width: '60px',
-              height: '60px',
+              width: '64px',
+              height: '64px',
               borderRadius: '16px',
-              background: success ? 'rgba(16, 185, 129, 0.2)' : 'rgba(99, 102, 241, 0.2)',
-              border: `1px solid ${success ? 'rgba(16, 185, 129, 0.4)' : 'rgba(99, 102, 241, 0.4)'}`,
+              background: success ? '#ECFDF5' : '#EEF2FF',
+              border: `1px solid ${success ? '#A7F3D0' : '#C7D2FE'}`,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: '1rem',
             }}>
               {success ? (
-                <CheckCircle2 size={32} color="#10b981" />
+                <CheckCircle2 size={32} color="var(--success)" />
               ) : (
-                <MailCheck size={32} color="#818cf8" />
+                <MailCheck size={32} color="var(--primary)" />
               )}
             </div>
 
-            <h2 style={{ fontSize: '1.75rem', marginBottom: '0.4rem' }}>
+            <h2 style={{ fontSize: '1.65rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
               {success ? 'Email Verified!' : 'Verify Your Email'}
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5' }}>
@@ -164,39 +163,37 @@ const VerifyEmailPage = () => {
             <div style={{
               textAlign: 'center',
               padding: '2rem',
-              background: 'rgba(15, 23, 42, 0.6)',
+              background: '#F8FAFC',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               marginBottom: '1.5rem'
             }}>
-              <RefreshCw size={28} className="spin-anim" style={{ color: '#818cf8', marginBottom: '1rem' }} />
-              <p style={{ color: '#cbd5e1', fontSize: '0.95rem' }}>Verifying your secure link...</p>
+              <RefreshCw size={28} className="spin-anim" style={{ color: 'var(--primary)', marginBottom: '1rem' }} />
+              <p style={{ color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 600 }}>Verifying your secure link...</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Please wait while we confirm your credentials</p>
             </div>
           )}
 
           {/* Success Screen */}
           {success && (
             <div>
-              <div style={{
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                borderRadius: 'var(--radius-md)',
-                padding: '1.25rem',
-                color: '#34d399',
+              <div className="alert-success" style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.75rem',
-                marginBottom: '1.5rem'
+                marginBottom: '1.5rem',
+                fontSize: '0.95rem',
+                fontWeight: 500
               }}>
-                <CheckCircle2 size={24} style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: '0.95rem' }}>{statusMsg || 'Your account is ready for sign in!'}</span>
+                <CheckCircle2 size={22} style={{ flexShrink: 0 }} />
+                <span>{statusMsg || 'Your account is verified and ready for sign in!'}</span>
               </div>
 
               <button
                 type="button"
                 className="btn-primary"
                 onClick={() => navigate('/login')}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.85rem' }}
               >
                 Proceed to Login <ArrowRight size={18} />
               </button>
@@ -207,17 +204,12 @@ const VerifyEmailPage = () => {
           {!success && !verifyingLink && (
             <div>
               {error && (
-                <div style={{
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '1rem',
-                  color: '#f87171',
+                <div className="alert-danger" style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.75rem',
                   marginBottom: '1.25rem',
-                  fontSize: '0.9rem'
+                  fontSize: '0.875rem'
                 }}>
                   <AlertCircle size={20} style={{ flexShrink: 0 }} />
                   <span>{error}</span>
@@ -225,17 +217,12 @@ const VerifyEmailPage = () => {
               )}
 
               {statusMsg && (
-                <div style={{
-                  background: 'rgba(99, 102, 241, 0.15)',
-                  border: '1px solid rgba(99, 102, 241, 0.3)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '1rem',
-                  color: '#a5b4fc',
+                <div className="alert-info" style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.75rem',
                   marginBottom: '1.25rem',
-                  fontSize: '0.9rem'
+                  fontSize: '0.875rem'
                 }}>
                   <CheckCircle2 size={20} style={{ flexShrink: 0 }} />
                   <span>{statusMsg}</span>
@@ -244,7 +231,7 @@ const VerifyEmailPage = () => {
 
               <form onSubmit={handleOtpSubmit}>
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                  <label className="form-label">
                     Registered Email Address
                   </label>
                   <input
@@ -253,22 +240,13 @@ const VerifyEmailPage = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="student@example.edu"
                     required
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem 1rem',
-                      background: 'rgba(15, 23, 42, 0.6)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 'var(--radius-md)',
-                      color: '#ffffff',
-                      outline: 'none',
-                      fontSize: '0.95rem'
-                    }}
+                    className="form-input"
                   />
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    <label className="form-label" style={{ marginBottom: 0 }}>
                       6-Digit Verification Code (OTP)
                     </label>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Valid 15 mins</span>
@@ -280,19 +258,15 @@ const VerifyEmailPage = () => {
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                     placeholder="123456"
                     required
+                    className="form-input"
                     style={{
-                      width: '100%',
-                      padding: '0.85rem 1rem',
-                      background: 'rgba(15, 23, 42, 0.7)',
-                      border: '1px solid rgba(99, 102, 241, 0.4)',
-                      borderRadius: 'var(--radius-md)',
-                      color: '#38bdf8',
-                      letterSpacing: '8px',
+                      letterSpacing: '10px',
                       textAlign: 'center',
                       fontSize: '1.6rem',
                       fontWeight: 700,
-                      outline: 'none',
-                      fontFamily: 'monospace'
+                      color: 'var(--primary)',
+                      fontFamily: 'monospace',
+                      padding: '0.75rem'
                     }}
                   />
                 </div>
@@ -304,7 +278,7 @@ const VerifyEmailPage = () => {
                   style={{
                     width: '100%',
                     padding: '0.85rem',
-                    fontSize: '1rem',
+                    fontSize: '0.95rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -337,9 +311,9 @@ const VerifyEmailPage = () => {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: resendCooldown > 0 ? 'var(--text-muted)' : '#818cf8',
+                    color: resendCooldown > 0 ? 'var(--text-muted)' : 'var(--primary)',
                     cursor: resendCooldown > 0 ? 'not-allowed' : 'pointer',
-                    fontSize: '0.85rem',
+                    fontSize: '0.875rem',
                     fontWeight: 600,
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -360,10 +334,11 @@ const VerifyEmailPage = () => {
                     gap: '0.4rem',
                     color: 'var(--text-secondary)',
                     textDecoration: 'none',
-                    fontSize: '0.85rem'
+                    fontSize: '0.875rem',
+                    fontWeight: 500
                   }}
                 >
-                  <ArrowLeft size={14} /> Back to Login
+                  <ArrowLeft size={16} /> Back to Login
                 </Link>
               </div>
             </div>

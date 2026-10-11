@@ -5,36 +5,40 @@ import { useNavigate } from 'react-router-dom';
 import {
   Building2, Users, Bed, Shield, BarChart3, Plus, Edit, Trash2,
   CheckCircle, XCircle, LogOut, RefreshCw, AlertTriangle, User,
-  ChevronRight, Home, Key, DoorOpen, Search, ArrowRightLeft
+  ChevronRight, Home, Key, DoorOpen, Search, ArrowRightLeft, Menu, X
 } from 'lucide-react';
 import ConfirmModal from '../../components/common/ConfirmModal';
 
 /* ──────────────────────────────
-   Tiny reusable sub-components
+   Reusable Sub-Components
 ────────────────────────────── */
 const Alert = ({ type, msg, onClose }) => {
   if (!msg) return null;
-  const colors = {
-    success: { bg: 'rgba(16,185,129,.12)', border: 'rgba(16,185,129,.35)', text: '#34d399' },
-    error:   { bg: 'rgba(239,68,68,.12)',  border: 'rgba(239,68,68,.35)',  text: '#f87171' },
-    info:    { bg: 'rgba(99,102,241,.12)', border: 'rgba(99,102,241,.35)', text: '#818cf8' },
-  }[type] || {};
+  const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-danger' : 'alert-info';
   return (
-    <div style={{ padding: '.75rem 1rem', borderRadius: 'var(--radius-md)', border: `1px solid ${colors.border}`, background: colors.bg, color: colors.text, marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.75rem' }}>
+    <div className={alertClass} style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
       <span>{msg}</span>
-      {onClose && <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: '1.1rem' }}>×</button>}
+      {onClose && (
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: '1.2rem', lineHeight: 1 }}>
+          ×
+        </button>
+      )}
     </div>
   );
 };
 
-const StatCard = ({ icon: Icon, label, value, color }) => (
-  <div className="glass-card" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-    <div style={{ width: 44, height: 44, borderRadius: 12, background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      <Icon size={22} color="#fff" />
+const StatCard = ({ icon: Icon, label, value, bg = '#EEF2FF', iconColor = 'var(--primary)' }) => (
+  <div className="card" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+    <div style={{ width: 44, height: 44, borderRadius: 12, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <Icon size={22} color={iconColor} />
     </div>
     <div>
-      <div style={{ fontSize: '.78rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '.04em' }}>{label}</div>
-      <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>{value ?? '—'}</div>
+      <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.04em' }}>
+        {label}
+      </div>
+      <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
+        {value ?? '—'}
+      </div>
     </div>
   </div>
 );
@@ -45,8 +49,8 @@ const Modal = ({ open, title, onClose, children }) => {
     <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" style={{ maxWidth: 560 }}>
         <div className="modal-header">
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>{title}</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.4rem' }}>×</button>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{title}</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '1.5rem', lineHeight: 1 }}>×</button>
         </div>
         {children}
       </div>
@@ -55,7 +59,7 @@ const Modal = ({ open, title, onClose, children }) => {
 };
 
 /* ──────────────────────────────
-   Main Dashboard
+   Main Institution Admin Dashboard
 ────────────────────────────── */
 const InstitutionAdminDashboard = () => {
   const { user, logout, token } = useAuth();
@@ -71,8 +75,9 @@ const InstitutionAdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState({ type: '', msg: '' });
   const [searchStudent, setSearchStudent] = useState('');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // Modal state
+  // Modal states
   const [hostelModal, setHostelModal] = useState({ open: false, editing: null });
   const [hostelForm, setHostelForm] = useState({ name: '', type: 'Boys', block_number: '', address: '', contact_number: '', gps_radius: '200' });
 
@@ -104,10 +109,13 @@ const InstitutionAdminDashboard = () => {
 
   const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-  const setMsg = (type, msg) => { setAlert({ type, msg }); setTimeout(() => setAlert({ type: '', msg: '' }), 4000); };
+  const setMsg = (type, msg) => { 
+    setAlert({ type, msg }); 
+    setTimeout(() => setAlert({ type: '', msg: '' }), 4000); 
+  };
 
   /* ---- Data Fetching ---- */
-  const fetchStats  = useCallback(() => api.get('/admin/stats',   authHeader), [token]);
+  const fetchStats  = useCallback(() => api.get('/admin/stats', authHeader), [token]);
   const fetchHostels = useCallback(() => api.get('/admin/hostels', authHeader), [token]);
   const fetchWardens = useCallback(() => api.get('/admin/wardens', authHeader), [token]);
   const fetchStudents = useCallback(() => api.get('/admin/students', authHeader), [token]);
@@ -310,7 +318,6 @@ const InstitutionAdminDashboard = () => {
   const openTransferModal = async (req) => {
     setTransferModal({ open: true, req });
     setTransferForm({ new_room_id: '', admin_remarks: '' });
-    // Fetch rooms for student's hostel
     const hid = req.student?.hostel || req.hostel || (hostels[0]?._id);
     if (hid) {
       try {
@@ -394,82 +401,214 @@ const InstitutionAdminDashboard = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)', fontFamily: 'var(--font-body)' }}>
-      <div className="bg-mesh" />
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)' }}>
+      {/* Mobile Drawer Overlay */}
+      {mobileSidebarOpen && (
+        <div 
+          onClick={() => setMobileSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(17, 24, 39, 0.6)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 40
+          }}
+        />
+      )}
 
       {/* ── Sidebar ── */}
-      <aside style={{ width: 260, flexShrink: 0, background: 'rgba(17,24,39,.95)', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh' }}>
-        <div style={{ padding: '1.5rem 1.25rem', borderBottom: '1px solid var(--border-color)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.5rem' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Home size={18} color="#fff" />
+      <aside 
+        className="dashboard-sidebar"
+        style={{
+          width: 270,
+          background: 'var(--bg-sidebar)',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'fixed',
+          top: 0,
+          bottom: 0,
+          left: 0,
+          zIndex: 50,
+          transform: mobileSidebarOpen ? 'translateX(0)' : undefined,
+          transition: 'transform 0.25s ease'
+        }}
+      >
+        <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Home size={20} color="#fff" />
             </div>
-            <div>
-              <div style={{ fontSize: '.75rem', color: 'var(--accent-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>Institution Admin</div>
-              <div style={{ fontSize: '.85rem', fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>{user?.institution_name || 'Your Institution'}</div>
+            <div style={{ overflow: 'hidden' }}>
+              <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>INSTITUTION ADMIN</div>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                {user?.institution_name || 'CampusHome'}
+              </div>
             </div>
           </div>
+          {mobileSidebarOpen && (
+            <button 
+              onClick={() => setMobileSidebarOpen(false)}
+              style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '0.25rem' }}
+            >
+              <X size={20} />
+            </button>
+          )}
         </div>
 
-        <nav style={{ flex: 1, padding: '1rem .75rem', overflowY: 'auto' }}>
+        <nav style={{ flex: 1, padding: '1.25rem 0.85rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
           {navItems.map(({ key, icon: Icon, label }) => (
-            <button key={key} onClick={() => setTab(key)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '.65rem', padding: '.7rem .9rem', borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer', marginBottom: '.25rem', fontWeight: 600, fontSize: '.88rem', transition: 'all .15s', background: tab === key ? 'rgba(99,102,241,.18)' : 'transparent', color: tab === key ? '#818cf8' : 'var(--text-secondary)' }}>
-              <Icon size={17} />
-              {label}
+            <button 
+              key={key} 
+              onClick={() => { setTab(key); setMobileSidebarOpen(false); }} 
+              style={{ 
+                width: '100%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.75rem', 
+                padding: '0.75rem 1rem', 
+                borderRadius: 'var(--radius-md)', 
+                border: 'none', 
+                cursor: 'pointer', 
+                fontWeight: 600, 
+                fontSize: '0.9rem', 
+                transition: 'var(--transition)', 
+                background: tab === key ? 'var(--primary)' : 'transparent', 
+                color: tab === key ? '#FFFFFF' : '#94A3B8',
+                textAlign: 'left'
+              }}
+            >
+              <Icon size={18} />
+              <span>{label}</span>
               {tab === key && <ChevronRight size={14} style={{ marginLeft: 'auto' }} />}
             </button>
           ))}
         </nav>
 
-        <div style={{ padding: '1rem .75rem', borderTop: '1px solid var(--border-color)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '.65rem', padding: '.6rem', borderRadius: 'var(--radius-md)', background: 'rgba(255,255,255,.04)', marginBottom: '.65rem' }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <User size={16} color="#94a3b8" />
+        <div style={{ padding: '1.25rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#1E293B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <User size={18} color="#94A3B8" />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '.82rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.full_name}</div>
-              <div style={{ fontSize: '.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.full_name}</div>
+              <div style={{ fontSize: '0.75rem', color: '#94A3B8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</div>
             </div>
           </div>
-          <button onClick={() => { logout(); navigate('/login'); }} className="btn btn-secondary btn-sm" style={{ width: '100%', justifyContent: 'center' }}>
-            <LogOut size={14} /> Logout
+          <button 
+            onClick={() => { logout(); navigate('/login'); }} 
+            style={{
+              width: '100%',
+              padding: '0.65rem',
+              borderRadius: 'var(--radius-md)',
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: '#F87171',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              cursor: 'pointer',
+              transition: 'var(--transition)'
+            }}
+          >
+            <LogOut size={15} /> Sign Out
           </button>
         </div>
       </aside>
 
-      {/* ── Main ── */}
-      <main style={{ flex: 1, padding: '2rem', overflowY: 'auto', maxWidth: 'calc(100vw - 260px)' }}>
+      {/* ── Main Area ── */}
+      <main 
+        className="dashboard-main"
+        style={{ 
+          flex: 1, 
+          marginLeft: 270, 
+          padding: '2rem', 
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        {/* Mobile Header Row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <button 
+              className="mobile-hamburger-btn"
+              onClick={() => setMobileSidebarOpen(true)}
+              style={{
+                display: 'none',
+                background: '#FFFFFF',
+                border: '1px solid var(--border-color)',
+                padding: '0.5rem',
+                borderRadius: 'var(--radius-md)',
+                cursor: 'pointer',
+                color: 'var(--text-primary)'
+              }}
+            >
+              <Menu size={22} />
+            </button>
+            <div>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+                {tab === 'overview' && 'Dashboard Overview'}
+                {tab === 'hostels' && 'Hostel Management'}
+                {tab === 'rooms' && 'Room Inventory'}
+                {tab === 'wardens' && 'Wardens Roster'}
+                {tab === 'students' && 'Students Directory'}
+                {tab === 'transfers' && 'Room Transfers'}
+              </h1>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: '0.2rem 0 0 0' }}>
+                {user?.institution_name || 'Tenant Management Console'}
+              </p>
+            </div>
+          </div>
+
+          <button onClick={loadOverview} className="btn-secondary" style={{ padding: '0.5rem 0.85rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <RefreshCw size={14} /> Refresh
+          </button>
+        </div>
+
         <Alert type={alert.type} msg={alert.msg} onClose={() => setAlert({ type: '', msg: '' })} />
 
         {loading && tab === 'overview' ? (
-          <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>Loading dashboard…</div>
+          <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+            <div className="spinner" style={{ margin: '0 auto 1rem auto' }}></div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Loading dashboard data…</div>
+          </div>
         ) : (
           <>
             {/* ─── OVERVIEW ─── */}
             {tab === 'overview' && (
               <>
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <h1 style={{ fontSize: '1.8rem', marginBottom: '.25rem' }}>Dashboard Overview</h1>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '.9rem' }}>Real-time statistics for {user?.institution_name}</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+                  <StatCard icon={Users} label="Total Students" value={stats?.totalStudents} bg="#EEF2FF" iconColor="var(--primary)" />
+                  <StatCard icon={CheckCircle} label="Approved" value={stats?.approvedStudents} bg="#ECFDF5" iconColor="var(--success)" />
+                  <StatCard icon={AlertTriangle} label="Pending Students" value={stats?.pendingStudents} bg="#FEF3C7" iconColor="var(--warning)" />
+                  <StatCard icon={Building2} label="Hostel Blocks" value={stats?.totalHostels} bg="#F0FDFA" iconColor="var(--secondary)" />
+                  <StatCard icon={Bed} label="Total Capacity" value={stats?.totalCapacity} bg="#EEF2FF" iconColor="var(--primary)" />
+                  <StatCard icon={Shield} label="Active Wardens" value={stats?.totalWardens} bg="#FDF2F8" iconColor="#DB2777" />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-                  <StatCard icon={Users}    label="Total Students"  value={stats?.totalStudents}   color="var(--accent-gradient)" />
-                  <StatCard icon={CheckCircle} label="Approved"     value={stats?.approvedStudents} color="linear-gradient(135deg,#10b981,#059669)" />
-                  <StatCard icon={AlertTriangle} label="Pending"    value={stats?.pendingStudents}  color="linear-gradient(135deg,#f59e0b,#d97706)" />
-                  <StatCard icon={Building2} label="Hostels"        value={stats?.totalHostels}     color="linear-gradient(135deg,#6366f1,#8b5cf6)" />
-                  <StatCard icon={Bed}       label="Total Beds"     value={stats?.totalCapacity}    color="linear-gradient(135deg,#06b6d4,#3b82f6)" />
-                  <StatCard icon={Shield}    label="Wardens"        value={stats?.totalWardens}     color="linear-gradient(135deg,#ec4899,#8b5cf6)" />
-                </div>
+
                 {stats && (
-                  <div className="glass-card" style={{ padding: '1.5rem', maxWidth: 480 }}>
-                    <h3 style={{ fontSize: '1rem', marginBottom: '1rem', color: 'var(--text-secondary)' }}>Occupancy</h3>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '.5rem', fontSize: '.9rem' }}>
-                      <span>Occupied Beds</span><strong>{stats.occupiedBeds} / {stats.totalCapacity}</strong>
+                  <div className="card" style={{ padding: '1.75rem', maxWidth: 540 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Campus Bed Occupancy</h3>
+                      <span className="badge badge-indigo">{stats.occupancyRate}% Full</span>
                     </div>
-                    <div style={{ height: 10, background: 'rgba(255,255,255,.08)', borderRadius: 99, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${stats.occupancyRate}%`, background: 'var(--accent-gradient)', borderRadius: 99, transition: 'width .5s' }} />
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                      <span>Allocated Beds:</span>
+                      <strong style={{ color: 'var(--text-primary)' }}>{stats.occupiedBeds} / {stats.totalCapacity}</strong>
                     </div>
-                    <div style={{ fontSize: '.8rem', color: 'var(--text-muted)', marginTop: '.35rem', textAlign: 'right' }}>{stats.occupancyRate}% occupied</div>
+
+                    <div style={{ height: 10, background: '#E2E8F0', borderRadius: 99, overflow: 'hidden', marginBottom: '0.75rem' }}>
+                      <div style={{ height: '100%', width: `${stats.occupancyRate}%`, background: 'var(--primary)', borderRadius: 99, transition: 'width 0.6s ease' }} />
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      <span>Available vacant beds: {Math.max(0, (stats.totalCapacity || 0) - (stats.occupiedBeds || 0))}</span>
+                      <span>Target: 100%</span>
+                    </div>
                   </div>
                 )}
               </>
@@ -478,37 +617,53 @@ const InstitutionAdminDashboard = () => {
             {/* ─── HOSTELS ─── */}
             {tab === 'hostels' && (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h2 style={{ fontSize: '1.5rem' }}>Hostel Management</h2>
-                  <button onClick={openAddHostel} className="btn btn-primary btn-sm"><Plus size={15} /> Add Hostel</button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>Manage campus residence blocks, types, and geographic GPS fencing.</p>
+                  <button onClick={openAddHostel} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', fontSize: '0.875rem' }}>
+                    <Plus size={16} /> Add New Hostel
+                  </button>
                 </div>
+
                 {hostels.length === 0 ? (
-                  <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    <Building2 size={40} style={{ opacity: .3, margin: '0 auto 1rem' }} />
-                    <p>No hostels yet. Add your first hostel.</p>
+                  <div className="card" style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    <Building2 size={44} style={{ opacity: 0.3, margin: '0 auto 1rem' }} />
+                    <p style={{ fontSize: '1rem', fontWeight: 600 }}>No hostel blocks registered yet.</p>
+                    <button onClick={openAddHostel} className="btn-primary" style={{ marginTop: '0.5rem', padding: '0.5rem 1rem' }}>Add First Hostel</button>
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
                     {hostels.map(h => (
-                      <div key={h._id} className="glass-card" style={{ padding: '1.25rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '.75rem' }}>
+                      <div key={h._id} className="card" style={{ padding: '1.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                           <div>
-                            <span className={`badge ${h.type === 'Boys' ? 'badge-info' : h.type === 'Girls' ? 'badge-purple' : 'badge-success'}`} style={{ marginBottom: '.35rem' }}>{h.type}</span>
-                            <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>{h.name}</h3>
-                            <div style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>Block {h.block_number}</div>
+                            <span className={`badge ${h.type === 'Boys' ? 'badge-indigo' : h.type === 'Girls' ? 'badge-purple' : 'badge-teal'}`} style={{ marginBottom: '0.5rem' }}>
+                              {h.type} Hostel
+                            </span>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{h.name}</h3>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Block {h.block_number}</div>
                           </div>
-                          <div style={{ display: 'flex', gap: '.5rem' }}>
-                            <button onClick={() => openEditHostel(h)} className="btn btn-secondary btn-sm"><Edit size={13} /></button>
-                            <button onClick={() => deleteHostel(h._id)} className="btn btn-danger btn-sm"><Trash2 size={13} /></button>
+                          <div style={{ display: 'flex', gap: '0.4rem' }}>
+                            <button onClick={() => openEditHostel(h)} className="btn-secondary" style={{ padding: '0.4rem', borderRadius: '8px' }} title="Edit Hostel">
+                              <Edit size={14} />
+                            </button>
+                            <button onClick={() => deleteHostel(h._id)} className="btn-danger" style={{ padding: '0.4rem', borderRadius: '8px' }} title="Delete Hostel">
+                              <Trash2 size={14} />
+                            </button>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '1.5rem', fontSize: '.8rem', color: 'var(--text-secondary)' }}>
-                          <span>🏠 {h.studentsCount ?? 0} students</span>
-                          <span>🛏 {h.totalBeds ?? 0} beds</span>
-                          <span>✅ {h.availableBeds ?? 0} available</span>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 1rem', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                          <span>👥 {h.studentsCount ?? 0} Students</span>
+                          <span>🛏 {h.totalBeds ?? 0} Beds</span>
+                          <span style={{ color: 'var(--success)', fontWeight: 600 }}>✅ {h.availableBeds ?? 0} Free</span>
                         </div>
-                        <button onClick={() => { setTab('rooms'); setSelectedHostelId(h._id); }} className="btn btn-ghost btn-sm" style={{ marginTop: '.75rem', width: '100%' }}>
-                          View Rooms <ChevronRight size={13} />
+
+                        <button 
+                          onClick={() => { setTab('rooms'); setSelectedHostelId(h._id); }} 
+                          className="btn-secondary" 
+                          style={{ width: '100%', justifyContent: 'center', fontSize: '0.85rem' }}
+                        >
+                          Manage Rooms <ChevronRight size={14} />
                         </button>
                       </div>
                     ))}
@@ -520,42 +675,64 @@ const InstitutionAdminDashboard = () => {
             {/* ─── ROOMS ─── */}
             {tab === 'rooms' && (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '.75rem' }}>
-                  <h2 style={{ fontSize: '1.5rem' }}>Room Management</h2>
-                  <div style={{ display: 'flex', gap: '.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <select className="form-select" style={{ width: 'auto', minWidth: 200 }} value={selectedHostelId} onChange={e => setSelectedHostelId(e.target.value)}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Select Block:</label>
+                    <select className="form-select" style={{ width: 'auto', minWidth: 220 }} value={selectedHostelId} onChange={e => setSelectedHostelId(e.target.value)}>
                       {hostels.map(h => <option key={h._id} value={h._id}>{h.name}</option>)}
                     </select>
-                    <button onClick={() => loadRooms(selectedHostelId)} className="btn btn-secondary btn-sm"><RefreshCw size={13} /></button>
-                    <button onClick={openAddRoom} className="btn btn-primary btn-sm" disabled={!selectedHostelId}><Plus size={15} /> Add Room</button>
+                    <button onClick={() => loadRooms(selectedHostelId)} className="btn-secondary" style={{ padding: '0.5rem 0.75rem' }} title="Reload rooms">
+                      <RefreshCw size={14} />
+                    </button>
                   </div>
+                  <button onClick={openAddRoom} className="btn-primary" disabled={!selectedHostelId} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', fontSize: '0.875rem' }}>
+                    <Plus size={16} /> Add Room
+                  </button>
                 </div>
+
                 {rooms.length === 0 ? (
-                  <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    <DoorOpen size={40} style={{ opacity: .3, margin: '0 auto 1rem' }} />
-                    <p>No rooms in this hostel. Add your first room.</p>
+                  <div className="card" style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    <DoorOpen size={44} style={{ opacity: 0.3, margin: '0 auto 1rem' }} />
+                    <p style={{ fontSize: '1rem', fontWeight: 600 }}>No rooms registered in this hostel block.</p>
+                    <button onClick={openAddRoom} className="btn-primary" style={{ marginTop: '0.5rem' }}>Add Room</button>
                   </div>
                 ) : (
                   <div className="table-container">
                     <table className="data-table">
                       <thead>
                         <tr>
-                          <th>Room No.</th><th>Type</th><th>Total Beds</th><th>Available</th><th>Occupied</th><th>Occupants</th><th>Actions</th>
+                          <th>Room Number</th>
+                          <th>Layout Type</th>
+                          <th>Capacity</th>
+                          <th>Available Beds</th>
+                          <th>Occupied Beds</th>
+                          <th>Current Residents</th>
+                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {rooms.map(r => (
                           <tr key={r._id}>
-                            <td><strong>{r.room_number}</strong></td>
-                            <td><span className="badge badge-info">{r.room_type}</span></td>
+                            <td><strong style={{ color: 'var(--text-primary)' }}>{r.room_number}</strong></td>
+                            <td><span className="badge badge-indigo">{r.room_type}</span></td>
                             <td>{r.total_beds}</td>
-                            <td><span style={{ color: r.available_beds > 0 ? '#34d399' : '#f87171' }}>{r.available_beds}</span></td>
-                            <td>{r.total_beds - r.available_beds}</td>
-                            <td style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>{r.occupants?.map(o => o.full_name).join(', ') || '—'}</td>
                             <td>
-                              <div style={{ display: 'flex', gap: '.5rem' }}>
-                                <button onClick={() => openEditRoom(r)} className="btn btn-secondary btn-sm"><Edit size={13} /></button>
-                                <button onClick={() => deleteRoom(r._id)} className="btn btn-danger btn-sm"><Trash2 size={13} /></button>
+                              <span style={{ fontWeight: 700, color: r.available_beds > 0 ? 'var(--success)' : 'var(--danger)' }}>
+                                {r.available_beds}
+                              </span>
+                            </td>
+                            <td>{r.total_beds - r.available_beds}</td>
+                            <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: '240px' }}>
+                              {r.occupants?.map(o => o.full_name).join(', ') || '—'}
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                <button onClick={() => openEditRoom(r)} className="btn-secondary" style={{ padding: '0.35rem 0.5rem' }} title="Edit Room">
+                                  <Edit size={13} />
+                                </button>
+                                <button onClick={() => deleteRoom(r._id)} className="btn-danger" style={{ padding: '0.35rem 0.5rem' }} title="Delete Room">
+                                  <Trash2 size={13} />
+                                </button>
                               </div>
                             </td>
                           </tr>
@@ -570,24 +747,48 @@ const InstitutionAdminDashboard = () => {
             {/* ─── WARDENS ─── */}
             {tab === 'wardens' && (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h2 style={{ fontSize: '1.5rem' }}>Warden Management</h2>
-                  <button onClick={() => setWardenModal({ open: true })} className="btn btn-primary btn-sm"><Plus size={15} /> Add Warden</button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>Designate supervisory wardens responsible for attendance, leaves, and mess operations.</p>
+                  <button onClick={() => setWardenModal({ open: true })} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', fontSize: '0.875rem' }}>
+                    <Plus size={16} /> Add Warden Account
+                  </button>
                 </div>
+
                 {wardens.length === 0 ? (
-                  <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}><Shield size={40} style={{ opacity: .3, margin: '0 auto 1rem' }} /><p>No wardens yet.</p></div>
+                  <div className="card" style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    <Shield size={44} style={{ opacity: 0.3, margin: '0 auto 1rem' }} />
+                    <p style={{ fontSize: '1rem', fontWeight: 600 }}>No wardens configured for this institution.</p>
+                  </div>
                 ) : (
                   <div className="table-container">
                     <table className="data-table">
-                      <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Assigned Hostel</th><th>Actions</th></tr></thead>
+                      <thead>
+                        <tr>
+                          <th>Warden Name</th>
+                          <th>Email Address</th>
+                          <th>Contact Phone</th>
+                          <th>Assigned Hostel Block</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
                       <tbody>
                         {wardens.map(w => (
                           <tr key={w._id}>
-                            <td><strong>{w.full_name}</strong></td>
+                            <td><strong style={{ color: 'var(--text-primary)' }}>{w.full_name}</strong></td>
                             <td style={{ color: 'var(--text-secondary)' }}>{w.email}</td>
                             <td>{w.phone}</td>
-                            <td>{w.hostel ? <span className="badge badge-success">{w.hostel.name}</span> : <span style={{ color: 'var(--text-muted)', fontSize: '.8rem' }}>Unassigned</span>}</td>
-                            <td><button onClick={() => deleteWarden(w._id)} className="btn btn-danger btn-sm"><Trash2 size={13} /></button></td>
+                            <td>
+                              {w.hostel ? (
+                                <span className="badge badge-teal">{w.hostel.name}</span>
+                              ) : (
+                                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Unassigned</span>
+                              )}
+                            </td>
+                            <td>
+                              <button onClick={() => deleteWarden(w._id)} className="btn-danger" style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }} title="Remove Warden">
+                                <Trash2 size={13} /> Remove
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -600,43 +801,73 @@ const InstitutionAdminDashboard = () => {
             {/* ─── STUDENTS ─── */}
             {tab === 'students' && (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '.75rem' }}>
-                  <h2 style={{ fontSize: '1.5rem' }}>Student Management</h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
                   <div style={{ position: 'relative' }}>
-                    <Search size={15} style={{ position: 'absolute', left: '.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                    <input className="form-input" style={{ paddingLeft: '2.25rem', width: 260 }} placeholder="Search name / roll / email…" value={searchStudent} onChange={e => setSearchStudent(e.target.value)} />
+                    <Search size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input 
+                      className="form-input" 
+                      style={{ paddingLeft: '2.5rem', width: 280 }} 
+                      placeholder="Search name, roll, email…" 
+                      value={searchStudent} 
+                      onChange={e => setSearchStudent(e.target.value)} 
+                    />
                   </div>
+                  <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                    Showing {filteredStudents.length} of {students.length} students
+                  </span>
                 </div>
+
                 {filteredStudents.length === 0 ? (
-                  <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}><Users size={40} style={{ opacity: .3, margin: '0 auto 1rem' }} /><p>No students found.</p></div>
+                  <div className="card" style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    <Users size={44} style={{ opacity: 0.3, margin: '0 auto 1rem' }} />
+                    <p style={{ fontSize: '1rem', fontWeight: 600 }}>No students found matching your search.</p>
+                  </div>
                 ) : (
                   <div className="table-container">
                     <table className="data-table">
-                      <thead><tr><th>Name</th><th>Roll No.</th><th>Dept.</th><th>Hostel</th><th>Room</th><th>Status</th><th>Actions</th></tr></thead>
+                      <thead>
+                        <tr>
+                          <th>Resident Student</th>
+                          <th>Roll Number</th>
+                          <th>Department</th>
+                          <th>Hostel Block</th>
+                          <th>Room</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
                       <tbody>
                         {filteredStudents.map(s => (
                           <tr key={s._id}>
                             <td>
-                              <div style={{ fontWeight: 600 }}>{s.full_name}</div>
-                              <div style={{ fontSize: '.75rem', color: 'var(--text-muted)' }}>{s.email}</div>
+                              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{s.full_name}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{s.email}</div>
                             </td>
-                            <td style={{ fontFamily: 'monospace' }}>{s.roll_number}</td>
-                            <td style={{ fontSize: '.85rem' }}>{s.department}</td>
-                            <td>{s.hostel ? <span style={{ fontSize: '.8rem' }}>{s.hostel.name}</span> : <span style={{ color: 'var(--text-muted)', fontSize: '.8rem' }}>—</span>}</td>
-                            <td>{s.room ? <span style={{ fontSize: '.8rem' }}>{s.room.room_number}</span> : <span style={{ color: 'var(--text-muted)', fontSize: '.8rem' }}>—</span>}</td>
+                            <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>{s.roll_number}</td>
+                            <td style={{ fontSize: '0.85rem' }}>{s.department}</td>
+                            <td>{s.hostel ? <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{s.hostel.name}</span> : <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
+                            <td>{s.room ? <span className="badge badge-indigo">Room {s.room.room_number}</span> : <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
                             <td>
-                              {s.is_approved
-                                ? <span className="badge badge-success">Approved</span>
-                                : <span className="badge badge-warning">Pending</span>}
+                              {s.is_approved ? (
+                                <span className="badge badge-success">Approved</span>
+                              ) : (
+                                <span className="badge badge-warning">Pending Review</span>
+                              )}
                             </td>
                             <td>
-                              <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap' }}>
-                                <button onClick={() => toggleApprove(s._id, s.is_approved)} className={`btn btn-sm ${s.is_approved ? 'btn-secondary' : 'btn-success'}`}>
+                              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                <button 
+                                  onClick={() => toggleApprove(s._id, s.is_approved)} 
+                                  className={s.is_approved ? 'btn-secondary' : 'btn-primary'}
+                                  style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: !s.is_approved ? 'var(--success)' : undefined, borderColor: !s.is_approved ? 'var(--success)' : undefined }}
+                                >
                                   {s.is_approved ? <XCircle size={13} /> : <CheckCircle size={13} />}
                                   {s.is_approved ? 'Revoke' : 'Approve'}
                                 </button>
                                 {s.is_approved && (
-                                  <button onClick={() => openAssign(s)} className="btn btn-secondary btn-sm"><Key size={13} /> Assign Room</button>
+                                  <button onClick={() => openAssign(s)} className="btn-secondary" style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                    <Key size={13} /> Assign Room
+                                  </button>
                                 )}
                               </div>
                             </td>
@@ -652,30 +883,31 @@ const InstitutionAdminDashboard = () => {
             {/* ─── ROOM TRANSFERS ─── */}
             {tab === 'transfers' && (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <div>
-                    <h2 style={{ fontSize: '1.5rem', marginBottom: '.25rem' }}>Room Change & Transfer Requests</h2>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '.85rem' }}>Review student room change applications with real-time bed balancing.</p>
-                  </div>
-                  <button onClick={loadOverview} className="btn btn-secondary btn-sm"><RefreshCw size={13} /> Refresh</button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>
+                    Approve or decline student room reallocation requests with atomic bed availability balancing.
+                  </p>
+                  <button onClick={loadOverview} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', fontSize: '0.85rem' }}>
+                    <RefreshCw size={14} /> Refresh Requests
+                  </button>
                 </div>
 
                 {roomRequests.length === 0 ? (
-                  <div className="glass-card" style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    <ArrowRightLeft size={44} style={{ opacity: .3, margin: '0 auto 1rem' }} />
-                    <p>No room transfer requests recorded for your institution.</p>
+                  <div className="card" style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    <ArrowRightLeft size={44} style={{ opacity: 0.3, margin: '0 auto 1rem' }} />
+                    <p style={{ fontSize: '1rem', fontWeight: 600 }}>No room transfer requests recorded.</p>
                   </div>
                 ) : (
-                  <div className="glass-card" style={{ overflowX: 'auto' }}>
+                  <div className="table-container">
                     <table className="data-table">
                       <thead>
                         <tr>
-                          <th>Student</th>
+                          <th>Applicant Student</th>
                           <th>Current Room</th>
-                          <th>Preferred Type</th>
-                          <th>Reason</th>
+                          <th>Desired Layout</th>
+                          <th>Stated Reason</th>
                           <th>Status</th>
-                          <th>Submitted</th>
+                          <th>Submission Date</th>
                           <th>Actions</th>
                         </tr>
                       </thead>
@@ -688,27 +920,35 @@ const InstitutionAdminDashboard = () => {
                           return (
                             <tr key={req._id}>
                               <td>
-                                <div style={{ fontWeight: 600, color: '#fff' }}>{req.student?.full_name || 'N/A'}</div>
-                                <div style={{ fontSize: '.75rem', color: 'var(--text-muted)' }}>{req.student?.roll_number} • {req.student?.phone}</div>
+                                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{req.student?.full_name || 'N/A'}</div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{req.student?.roll_number} • {req.student?.phone}</div>
                               </td>
                               <td>{req.current_room?.room_number ? `${req.current_room.room_number} (${req.current_room.room_type})` : 'Unassigned'}</td>
-                              <td>{req.preferred_room_type || 'Single'}</td>
-                              <td style={{ maxWidth: '240px', fontSize: '.85rem' }}>{req.reason}</td>
+                              <td><span className="badge badge-indigo">{req.preferred_room_type || 'Single'}</span></td>
+                              <td style={{ maxWidth: '240px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{req.reason}</td>
                               <td><span className={`badge ${statusClass}`}>{req.status}</span></td>
-                              <td style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>{new Date(req.created_at).toLocaleDateString()}</td>
+                              <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(req.created_at).toLocaleDateString()}</td>
                               <td>
                                 {req.status === 'Pending' ? (
-                                  <div style={{ display: 'flex', gap: '.4rem' }}>
-                                    <button onClick={() => openTransferModal(req)} className="btn btn-success btn-sm">
+                                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                    <button 
+                                      onClick={() => openTransferModal(req)} 
+                                      className="btn-primary" 
+                                      style={{ background: 'var(--success)', borderColor: 'var(--success)', padding: '0.35rem 0.65rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                                    >
                                       <CheckCircle size={13} /> Approve
                                     </button>
-                                    <button onClick={() => rejectTransfer(req._id)} className="btn btn-danger btn-sm">
+                                    <button 
+                                      onClick={() => rejectTransfer(req._id)} 
+                                      className="btn-danger" 
+                                      style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                                    >
                                       <XCircle size={13} /> Reject
                                     </button>
                                   </div>
                                 ) : (
-                                  <span style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>
-                                    {req.target_room ? `Allocated to ${req.target_room.room_number}` : 'Closed'}
+                                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                    {req.target_room ? `Allocated to Room ${req.target_room.room_number}` : 'Closed'}
                                   </span>
                                 )}
                               </td>
@@ -728,39 +968,41 @@ const InstitutionAdminDashboard = () => {
       {/* ─── MODALS ─── */}
 
       {/* Hostel Modal */}
-      <Modal open={hostelModal.open} title={hostelModal.editing ? 'Edit Hostel' : 'Add New Hostel'} onClose={() => setHostelModal({ open: false, editing: null })}>
+      <Modal open={hostelModal.open} title={hostelModal.editing ? 'Edit Hostel Details' : 'Add New Hostel Block'} onClose={() => setHostelModal({ open: false, editing: null })}>
         <form onSubmit={saveHostel}>
-          <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.85rem' }}>
-            <div className="form-group" style={{ gridColumn: '1/-1' }}>
-              <label className="form-label">Hostel Name</label>
+          <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div style={{ gridColumn: '1/-1' }}>
+              <label className="form-label">Hostel Block Name *</label>
               <input className="form-input" required value={hostelForm.name} onChange={e => setHostelForm(p => ({...p, name: e.target.value}))} placeholder="e.g. Sunrise Boys Hostel" />
             </div>
-            <div className="form-group">
-              <label className="form-label">Type</label>
+            <div>
+              <label className="form-label">Resident Type *</label>
               <select className="form-select" value={hostelForm.type} onChange={e => setHostelForm(p => ({...p, type: e.target.value}))}>
-                <option>Boys</option><option>Girls</option><option>Co-ed</option>
+                <option>Boys</option>
+                <option>Girls</option>
+                <option>Co-ed</option>
               </select>
             </div>
-            <div className="form-group">
-              <label className="form-label">Block Number</label>
-              <input className="form-input" required value={hostelForm.block_number} onChange={e => setHostelForm(p => ({...p, block_number: e.target.value}))} placeholder="e.g. A1" />
+            <div>
+              <label className="form-label">Block Number / Identifier *</label>
+              <input className="form-input" required value={hostelForm.block_number} onChange={e => setHostelForm(p => ({...p, block_number: e.target.value}))} placeholder="e.g. Block A" />
             </div>
-            <div className="form-group" style={{ gridColumn: '1/-1' }}>
-              <label className="form-label">Address</label>
-              <input className="form-input" value={hostelForm.address} onChange={e => setHostelForm(p => ({...p, address: e.target.value}))} placeholder="Hostel address" />
+            <div style={{ gridColumn: '1/-1' }}>
+              <label className="form-label">Location Address</label>
+              <input className="form-input" value={hostelForm.address} onChange={e => setHostelForm(p => ({...p, address: e.target.value}))} placeholder="North Campus, Gate 2" />
             </div>
-            <div className="form-group">
-              <label className="form-label">Contact Number</label>
+            <div>
+              <label className="form-label">Desk Contact Number</label>
               <input className="form-input" value={hostelForm.contact_number} onChange={e => setHostelForm(p => ({...p, contact_number: e.target.value}))} placeholder="+91 …" />
             </div>
-            <div className="form-group">
-              <label className="form-label">GPS Radius (meters)</label>
+            <div>
+              <label className="form-label">GPS Geofence Radius (meters)</label>
               <input className="form-input" type="number" value={hostelForm.gps_radius} onChange={e => setHostelForm(p => ({...p, gps_radius: e.target.value}))} />
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" onClick={() => setHostelModal({ open: false, editing: null })} className="btn btn-secondary btn-sm">Cancel</button>
-            <button type="submit" className="btn btn-primary btn-sm">{hostelModal.editing ? 'Save Changes' : 'Create Hostel'}</button>
+            <button type="button" onClick={() => setHostelModal({ open: false, editing: null })} className="btn-secondary" style={{ padding: '0.5rem 1rem' }}>Cancel</button>
+            <button type="submit" className="btn-primary" style={{ padding: '0.5rem 1.25rem' }}>{hostelModal.editing ? 'Save Changes' : 'Create Hostel'}</button>
           </div>
         </form>
       </Modal>
@@ -768,33 +1010,37 @@ const InstitutionAdminDashboard = () => {
       {/* Room Modal */}
       <Modal open={roomModal.open} title={roomModal.editing ? 'Edit Room' : 'Add New Room'} onClose={() => setRoomModal({ open: false, editing: null })}>
         <form onSubmit={saveRoom}>
-          <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.85rem' }}>
+          <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             {!roomModal.editing && (
-              <div className="form-group" style={{ gridColumn: '1/-1' }}>
-                <label className="form-label">Hostel</label>
+              <div style={{ gridColumn: '1/-1' }}>
+                <label className="form-label">Hostel Block *</label>
                 <select className="form-select" required value={roomForm.hostel_id} onChange={e => setRoomForm(p => ({...p, hostel_id: e.target.value}))}>
                   {hostels.map(h => <option key={h._id} value={h._id}>{h.name}</option>)}
                 </select>
               </div>
             )}
-            <div className="form-group">
-              <label className="form-label">Room Number</label>
+            <div>
+              <label className="form-label">Room Number *</label>
               <input className="form-input" required value={roomForm.room_number} onChange={e => setRoomForm(p => ({...p, room_number: e.target.value}))} placeholder="e.g. 101" />
             </div>
-            <div className="form-group">
-              <label className="form-label">Room Type</label>
+            <div>
+              <label className="form-label">Room Type *</label>
               <select className="form-select" value={roomForm.room_type} onChange={e => setRoomForm(p => ({...p, room_type: e.target.value}))}>
-                <option>Single</option><option>Double</option><option>Triple</option><option>Four Bed</option><option>Dormitory</option>
+                <option>Single</option>
+                <option>Double</option>
+                <option>Triple</option>
+                <option>Four Bed</option>
+                <option>Dormitory</option>
               </select>
             </div>
-            <div className="form-group" style={{ gridColumn: '1/-1' }}>
-              <label className="form-label">Total Beds</label>
+            <div style={{ gridColumn: '1/-1' }}>
+              <label className="form-label">Total Bed Capacity *</label>
               <input className="form-input" type="number" min="1" required value={roomForm.total_beds} onChange={e => setRoomForm(p => ({...p, total_beds: e.target.value}))} placeholder="e.g. 2" />
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" onClick={() => setRoomModal({ open: false, editing: null })} className="btn btn-secondary btn-sm">Cancel</button>
-            <button type="submit" className="btn btn-primary btn-sm">{roomModal.editing ? 'Save Changes' : 'Create Room'}</button>
+            <button type="button" onClick={() => setRoomModal({ open: false, editing: null })} className="btn-secondary" style={{ padding: '0.5rem 1rem' }}>Cancel</button>
+            <button type="submit" className="btn-primary" style={{ padding: '0.5rem 1.25rem' }}>{roomModal.editing ? 'Save Changes' : 'Create Room'}</button>
           </div>
         </form>
       </Modal>
@@ -802,25 +1048,25 @@ const InstitutionAdminDashboard = () => {
       {/* Warden Modal */}
       <Modal open={wardenModal.open} title="Add New Warden" onClose={() => setWardenModal({ open: false })}>
         <form onSubmit={saveWarden}>
-          <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.85rem' }}>
-            <div className="form-group" style={{ gridColumn: '1/-1' }}>
-              <label className="form-label">Full Name</label>
-              <input className="form-input" required value={wardenForm.full_name} onChange={e => setWardenForm(p => ({...p, full_name: e.target.value}))} />
+          <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div style={{ gridColumn: '1/-1' }}>
+              <label className="form-label">Full Name *</label>
+              <input className="form-input" required value={wardenForm.full_name} onChange={e => setWardenForm(p => ({...p, full_name: e.target.value}))} placeholder="e.g. Mr. Robert Kumar" />
             </div>
-            <div className="form-group">
-              <label className="form-label">Email</label>
-              <input className="form-input" type="email" required value={wardenForm.email} onChange={e => setWardenForm(p => ({...p, email: e.target.value}))} />
+            <div>
+              <label className="form-label">Email Address *</label>
+              <input className="form-input" type="email" required value={wardenForm.email} onChange={e => setWardenForm(p => ({...p, email: e.target.value}))} placeholder="warden@institution.edu" />
             </div>
-            <div className="form-group">
-              <label className="form-label">Password</label>
-              <input className="form-input" type="password" required minLength="6" value={wardenForm.password} onChange={e => setWardenForm(p => ({...p, password: e.target.value}))} />
+            <div>
+              <label className="form-label">Password * (min 6 chars)</label>
+              <input className="form-input" type="password" required minLength="6" value={wardenForm.password} onChange={e => setWardenForm(p => ({...p, password: e.target.value}))} placeholder="••••••••" />
             </div>
-            <div className="form-group">
-              <label className="form-label">Phone</label>
-              <input className="form-input" required value={wardenForm.phone} onChange={e => setWardenForm(p => ({...p, phone: e.target.value}))} />
+            <div>
+              <label className="form-label">Contact Phone *</label>
+              <input className="form-input" required value={wardenForm.phone} onChange={e => setWardenForm(p => ({...p, phone: e.target.value}))} placeholder="+91 …" />
             </div>
-            <div className="form-group">
-              <label className="form-label">Assign to Hostel</label>
+            <div>
+              <label className="form-label">Assign to Hostel Block</label>
               <select className="form-select" value={wardenForm.hostel} onChange={e => setWardenForm(p => ({...p, hostel: e.target.value}))}>
                 <option value="">— Unassigned —</option>
                 {hostels.map(h => <option key={h._id} value={h._id}>{h.name}</option>)}
@@ -828,18 +1074,18 @@ const InstitutionAdminDashboard = () => {
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" onClick={() => setWardenModal({ open: false })} className="btn btn-secondary btn-sm">Cancel</button>
-            <button type="submit" className="btn btn-primary btn-sm">Create Warden</button>
+            <button type="button" onClick={() => setWardenModal({ open: false })} className="btn-secondary" style={{ padding: '0.5rem 1rem' }}>Cancel</button>
+            <button type="submit" className="btn-primary" style={{ padding: '0.5rem 1.25rem' }}>Create Warden</button>
           </div>
         </form>
       </Modal>
 
       {/* Assign Room Modal */}
-      <Modal open={assignModal.open} title={`Assign Room — ${assignModal.student?.full_name}`} onClose={() => setAssignModal({ open: false, student: null })}>
+      <Modal open={assignModal.open} title={`Assign Bed — ${assignModal.student?.full_name}`} onClose={() => setAssignModal({ open: false, student: null })}>
         <form onSubmit={submitAssign}>
-          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '.85rem' }}>
-            <div className="form-group">
-              <label className="form-label">Hostel</label>
+          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <label className="form-label">Hostel Block *</label>
               <select className="form-select" value={assignForm.hostel_id} onChange={async e => {
                 const hid = e.target.value;
                 setAssignForm(p => ({...p, hostel_id: hid, room_id: ''}));
@@ -849,17 +1095,17 @@ const InstitutionAdminDashboard = () => {
                 {hostels.map(h => <option key={h._id} value={h._id}>{h.name}</option>)}
               </select>
             </div>
-            <div className="form-group">
-              <label className="form-label">Room</label>
+            <div>
+              <label className="form-label">Select Available Room *</label>
               <select className="form-select" value={assignForm.room_id} onChange={e => setAssignForm(p => ({...p, room_id: e.target.value}))} required>
-                <option value="">— Select Room —</option>
-                {assignRooms.map(r => <option key={r._id} value={r._id}>{r.room_number} ({r.room_type}) — {r.available_beds} beds available</option>)}
+                <option value="">— Select Room with Vacancy —</option>
+                {assignRooms.map(r => <option key={r._id} value={r._id}>{r.room_number} ({r.room_type}) — {r.available_beds} beds free</option>)}
               </select>
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" onClick={() => setAssignModal({ open: false, student: null })} className="btn btn-secondary btn-sm">Cancel</button>
-            <button type="submit" className="btn btn-primary btn-sm">Assign Room</button>
+            <button type="button" onClick={() => setAssignModal({ open: false, student: null })} className="btn-secondary" style={{ padding: '0.5rem 1rem' }}>Cancel</button>
+            <button type="submit" className="btn-primary" style={{ padding: '0.5rem 1.25rem' }} disabled={!assignForm.room_id}>Assign Room</button>
           </div>
         </form>
       </Modal>
@@ -867,40 +1113,40 @@ const InstitutionAdminDashboard = () => {
       {/* Transfer Room Modal */}
       <Modal
         open={transferModal.open}
-        title={`Approve Room Transfer — ${transferModal.req?.student?.full_name}`}
+        title={`Approve Room Reallocation — ${transferModal.req?.student?.full_name}`}
         onClose={() => setTransferModal({ open: false, req: null })}
       >
         <form onSubmit={submitTransfer}>
-          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '.85rem' }}>
-            <div style={{ padding: '.75rem', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,.04)', fontSize: '.85rem' }}>
+          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ padding: '1rem', borderRadius: 'var(--radius-md)', background: '#F8FAFC', border: '1px solid var(--border-color)', fontSize: '0.875rem' }}>
               <div><strong>Current Room:</strong> {transferModal.req?.current_room?.room_number || 'None'}</div>
               <div><strong>Preferred Type:</strong> {transferModal.req?.preferred_room_type || 'Single'}</div>
-              <div><strong>Reason:</strong> {transferModal.req?.reason}</div>
+              <div><strong>Student Reason:</strong> {transferModal.req?.reason}</div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Select Destination Room *</label>
+            <div>
+              <label className="form-label">Target Destination Room *</label>
               <select
                 className="form-select"
                 value={transferForm.new_room_id}
                 onChange={e => setTransferForm(p => ({ ...p, new_room_id: e.target.value }))}
                 required
               >
-                <option value="">— Select Target Room with Available Beds —</option>
+                <option value="">— Select Target Room with Empty Beds —</option>
                 {transferRooms.map(r => (
                   <option key={r._id} value={r._id}>
-                    {r.room_number} ({r.room_type}) — {r.available_beds} beds available
+                    Room {r.room_number} ({r.room_type}) — {r.available_beds} vacant beds
                   </option>
                 ))}
               </select>
               {transferRooms.length === 0 && (
-                <div style={{ fontSize: '.75rem', color: '#f87171', marginTop: '.35rem' }}>
-                  No available rooms found with empty beds in this hostel.
+                <div style={{ fontSize: '0.8rem', color: 'var(--danger)', marginTop: '0.35rem' }}>
+                  No available vacant rooms found in this hostel block.
                 </div>
               )}
             </div>
 
-            <div className="form-group">
+            <div>
               <label className="form-label">Approval Remarks</label>
               <input
                 className="form-input"
@@ -911,11 +1157,11 @@ const InstitutionAdminDashboard = () => {
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" onClick={() => setTransferModal({ open: false, req: null })} className="btn btn-secondary btn-sm">
+            <button type="button" onClick={() => setTransferModal({ open: false, req: null })} className="btn-secondary" style={{ padding: '0.5rem 1rem' }}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-success btn-sm" disabled={!transferForm.new_room_id}>
-              Confirm Transfer
+            <button type="submit" className="btn-primary" style={{ background: 'var(--success)', borderColor: 'var(--success)', padding: '0.5rem 1.25rem' }} disabled={!transferForm.new_room_id}>
+              Confirm Reallocation
             </button>
           </div>
         </form>

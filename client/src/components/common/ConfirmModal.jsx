@@ -29,7 +29,7 @@ const ConfirmModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-backdrop" onClick={loading ? undefined : onCancel}>
+    <div className="modal-backdrop" onClick={loading ? undefined : onCancel} role="dialog" aria-modal="true">
       <div
         className="modal-content"
         style={{ maxWidth: '440px' }}
@@ -37,8 +37,21 @@ const ConfirmModal = ({
       >
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            {isDanger && <AlertTriangle size={20} color="#f87171" />}
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#ffffff' }}>
+            {isDanger && (
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--danger-bg)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--danger)'
+              }}>
+                <AlertTriangle size={18} />
+              </div>
+            )}
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
               {title}
             </h3>
           </div>
@@ -46,7 +59,8 @@ const ConfirmModal = ({
             onClick={onCancel}
             disabled={loading}
             className="btn btn-ghost btn-sm"
-            style={{ padding: '0.4rem', borderRadius: '50%' }}
+            style={{ padding: '0.4rem', borderRadius: 'var(--radius-sm)' }}
+            aria-label="Close"
           >
             <X size={18} />
           </button>
@@ -85,8 +99,7 @@ const ConfirmModal = ({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className={`btn btn-sm ${isDanger ? 'btn-danger' : 'btn-primary'}`}
-            style={isDanger ? { background: '#ef4444', borderColor: '#ef4444', color: '#fff' } : undefined}
+            className={`btn btn-sm ${isDanger ? 'btn-danger-solid' : 'btn-primary'}`}
           >
             {loading ? 'Processing...' : confirmText}
           </button>
