@@ -28,7 +28,7 @@ const ResetPasswordPage = () => {
     e.preventDefault();
 
     if (!token) {
-      setError('Password reset token is missing or invalid. Please check your reset email.');
+      setError('Password reset token is missing or invalid. Please request a new reset email.');
       return;
     }
 
@@ -62,36 +62,35 @@ const ResetPasswordPage = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <div className="bg-mesh" />
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-main)' }}>
       <Navbar />
 
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.5rem' }}>
-        <div className="glass-card" style={{ width: '100%', maxWidth: '460px', padding: '2.5rem 2rem', position: 'relative' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 1.5rem' }}>
+        <div className="card" style={{ width: '100%', maxWidth: '460px', padding: '2.5rem 2rem', boxShadow: 'var(--shadow-lg)' }}>
           
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <div style={{
-              width: '60px',
-              height: '60px',
+              width: '64px',
+              height: '64px',
               borderRadius: '16px',
-              background: success ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-              border: `1px solid ${success ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+              background: success ? '#ECFDF5' : '#EEF2FF',
+              border: `1px solid ${success ? '#A7F3D0' : '#C7D2FE'}`,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: '1rem',
             }}>
               {success ? (
-                <CheckCircle2 size={32} color="#10b981" />
+                <CheckCircle2 size={32} color="var(--success)" />
               ) : (
-                <KeyRound size={32} color="#f87171" />
+                <KeyRound size={32} color="var(--primary)" />
               )}
             </div>
 
-            <h2 style={{ fontSize: '1.75rem', marginBottom: '0.4rem' }}>
+            <h2 style={{ fontSize: '1.65rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
               {success ? 'Password Reset Complete' : 'Reset Your Password'}
             </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5' }}>
               {success
                 ? 'Your password has been securely updated. You can now log in.'
                 : 'Enter and confirm your new password below.'}
@@ -99,40 +98,28 @@ const ResetPasswordPage = () => {
           </div>
 
           {!token && !success && (
-            <div style={{
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              borderRadius: 'var(--radius-md)',
-              padding: '1.25rem',
-              color: '#f87171',
+            <div className="alert-danger" style={{
               display: 'flex',
-              alignItems: 'center',
+              alignItems: 'flex-start',
               gap: '0.75rem',
               marginBottom: '1.5rem',
-              fontSize: '0.9rem'
+              fontSize: '0.875rem'
             }}>
-              <ShieldAlert size={24} style={{ flexShrink: 0 }} />
+              <ShieldAlert size={22} style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
-                <strong>Missing Reset Token</strong>
-                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem' }}>
-                  This password reset link is invalid or incomplete. Please request a new link from the login page.
-                </p>
+                <strong style={{ display: 'block', marginBottom: '0.2rem' }}>Missing Reset Token</strong>
+                <span>This password reset link is invalid or incomplete. Please request a new link from the login screen.</span>
               </div>
             </div>
           )}
 
           {error && (
-            <div style={{
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              borderRadius: 'var(--radius-md)',
-              padding: '1rem',
-              color: '#f87171',
+            <div className="alert-danger" style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.75rem',
               marginBottom: '1.25rem',
-              fontSize: '0.9rem'
+              fontSize: '0.875rem'
             }}>
               <AlertCircle size={20} style={{ flexShrink: 0 }} />
               <span>{error}</span>
@@ -141,20 +128,30 @@ const ResetPasswordPage = () => {
 
           {success ? (
             <div>
+              <div className="alert-success" style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                marginBottom: '1.5rem',
+                fontSize: '0.9rem'
+              }}>
+                <CheckCircle2 size={20} style={{ flexShrink: 0 }} />
+                <span>Password changed successfully. You may now log in with your new password.</span>
+              </div>
               <button
                 type="button"
                 className="btn-primary"
                 onClick={() => navigate('/login')}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.85rem' }}
               >
-                Go to Login <ArrowRight size={18} />
+                Proceed to Login <ArrowRight size={18} />
               </button>
             </div>
           ) : (
             token && (
               <form onSubmit={handleSubmit}>
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                  <label className="form-label">
                     New Password (min 6 characters)
                   </label>
                   <input
@@ -163,21 +160,12 @@ const ResetPasswordPage = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem 1rem',
-                      background: 'rgba(15, 23, 42, 0.6)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 'var(--radius-md)',
-                      color: '#ffffff',
-                      outline: 'none',
-                      fontSize: '0.95rem'
-                    }}
+                    className="form-input"
                   />
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                  <label className="form-label">
                     Confirm New Password
                   </label>
                   <input
@@ -186,16 +174,7 @@ const ResetPasswordPage = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem 1rem',
-                      background: 'rgba(15, 23, 42, 0.6)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 'var(--radius-md)',
-                      color: '#ffffff',
-                      outline: 'none',
-                      fontSize: '0.95rem'
-                    }}
+                    className="form-input"
                   />
                 </div>
 
@@ -206,7 +185,7 @@ const ResetPasswordPage = () => {
                   style={{
                     width: '100%',
                     padding: '0.85rem',
-                    fontSize: '1rem',
+                    fontSize: '0.95rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -219,7 +198,7 @@ const ResetPasswordPage = () => {
                       <RefreshCw size={18} className="spin-anim" /> Updating Password...
                     </>
                   ) : (
-                    'Reset Password'
+                    'Set New Password'
                   )}
                 </button>
               </form>
@@ -235,10 +214,11 @@ const ResetPasswordPage = () => {
                 gap: '0.4rem',
                 color: 'var(--text-secondary)',
                 textDecoration: 'none',
-                fontSize: '0.85rem'
+                fontSize: '0.875rem',
+                fontWeight: 500
               }}
             >
-              <ArrowLeft size={14} /> Back to Login
+              <ArrowLeft size={16} /> Back to Login
             </Link>
           </div>
 

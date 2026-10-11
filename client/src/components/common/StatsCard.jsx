@@ -1,48 +1,50 @@
 import React from 'react';
 
 const StatsCard = ({ title, value, subtitle, icon: Icon, color = 'indigo', badgeText, badgeColor }) => {
-  const colorGradients = {
-    indigo: 'var(--accent-gradient)',
-    cyan: 'var(--accent-cyan-gradient)',
-    emerald: 'var(--accent-emerald-gradient)',
-    amber: 'var(--accent-amber-gradient)',
-    rose: 'var(--accent-rose-gradient)',
-    purple: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+  const colorSchemes = {
+    indigo: { bg: 'var(--accent-primary-subtle)', text: 'var(--accent-primary)', border: '#C7D2FE' },
+    teal:   { bg: 'var(--accent-teal-subtle)',    text: 'var(--accent-teal)',    border: '#99F6E4' },
+    cyan:   { bg: 'var(--accent-teal-subtle)',    text: 'var(--accent-teal)',    border: '#99F6E4' },
+    emerald:{ bg: 'var(--success-bg)',            text: 'var(--success)',        border: 'var(--success-border)' },
+    amber:  { bg: 'var(--warning-bg)',            text: 'var(--warning)',        border: 'var(--warning-border)' },
+    rose:   { bg: 'var(--danger-bg)',             text: 'var(--danger)',         border: 'var(--danger-border)' },
+    purple: { bg: '#F5F3FF',                      text: '#6D28D9',               border: '#DDD6FE' },
   };
 
-  const bgGradient = colorGradients[color] || colorGradients.indigo;
+  const scheme = colorSchemes[color] || colorSchemes.indigo;
 
   return (
-    <div className="glass-card" style={{ padding: '1.4rem', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
+    <div className="stat-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '0.9rem' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
         <div>
-          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <div className="stat-label">
             {title}
           </div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: '#ffffff', letterSpacing: '-0.02em' }}>
+          <div className="stat-value" style={{ marginTop: '0.2rem' }}>
             {value}
           </div>
         </div>
 
         <div style={{
-          width: '46px',
-          height: '46px',
-          borderRadius: '14px',
-          background: bgGradient,
+          width: '44px',
+          height: '44px',
+          borderRadius: 'var(--radius-md)',
+          background: scheme.bg,
+          border: `1px solid ${scheme.border}`,
+          color: scheme.text,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 6px 16px rgba(0, 0, 0, 0.3)',
           flexShrink: 0
         }}>
-          {Icon && <Icon size={24} color="#ffffff" />}
+          {Icon && <Icon size={22} color={scheme.text} />}
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-        <span>{subtitle}</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.65rem' }}>
+        <span className="truncate" style={{ maxWidth: '70%' }}>{subtitle}</span>
         {badgeText && (
-          <span className={`badge badge-${badgeColor || 'info'}`}>
+          <span className={`badge badge-${badgeColor || 'indigo'}`}>
             {badgeText}
           </span>
         )}

@@ -15,13 +15,12 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 // Role-based Protected Route Guard
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, token, role, loading } = useAuth();
-
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0b0f19', color: '#818cf8' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⏳</div>
-          <div style={{ fontWeight: 600 }}>Loading CampusHome Portal...</div>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)', color: 'var(--text-primary)' }}>
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <div className="spinner" style={{ margin: '0 auto 1rem auto' }}></div>
+          <div style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Loading CampusHome Portal...</div>
         </div>
       </div>
     );

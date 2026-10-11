@@ -114,7 +114,7 @@ const StudentDashboard = () => {
     setGpsResult(null);
 
     if (!navigator.geolocation) {
-      // Fallback coordinate for demo/unsupported devices
+      // Fallback coordinate
       submitAttendance(profile?.hostel?.gps_latitude || 31.6340, profile?.hostel?.gps_longitude || 74.8723);
       return;
     }
@@ -127,7 +127,7 @@ const StudentDashboard = () => {
         setGpsLocating(false);
         setGpsResult({
           success: false,
-          message: 'Location access was denied or unavailable. Please enable browser GPS location permissions to verify attendance.',
+          message: 'Location access was denied or unavailable. Please enable browser GPS permissions to verify attendance.',
         });
       },
       { timeout: 10000, enableHighAccuracy: true }
@@ -231,14 +231,13 @@ const StudentDashboard = () => {
   const filteredDayMenu = messMenu.filter((m) => m.day_of_week === selectedDay);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <div className="bg-mesh" />
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-main)' }}>
       <Navbar />
 
-      <main style={{ maxWidth: '1440px', margin: '0 auto', padding: '1.75rem 1.5rem', width: '100%', flex: 1 }}>
+      <main style={{ maxWidth: '1440px', margin: '0 auto', padding: '2rem 1.5rem', width: '100%', flex: 1 }}>
         
         {/* Student Profile Hero Banner */}
-        <div className="glass-card" style={{
+        <div className="card" style={{
           padding: '2rem',
           marginBottom: '2rem',
           display: 'flex',
@@ -246,43 +245,41 @@ const StudentDashboard = () => {
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '1.5rem',
-          background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.75) 0%, rgba(15, 23, 42, 0.95) 100%)',
-          border: '1px solid rgba(99, 102, 241, 0.25)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
             <div style={{
               width: '64px',
               height: '64px',
-              borderRadius: '20px',
-              background: 'var(--accent-gradient)',
+              borderRadius: '16px',
+              background: '#EEF2FF',
+              border: '1px solid #C7D2FE',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#ffffff',
+              color: 'var(--primary)',
               fontSize: '1.6rem',
               fontWeight: 800,
-              boxShadow: '0 8px 24px rgba(99, 102, 241, 0.4)'
             }}>
               {profile?.full_name ? profile.full_name[0].toUpperCase() : 'S'}
             </div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>
-                <h1 style={{ fontSize: '1.75rem', color: '#ffffff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
+                <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
                   {profile?.full_name || 'Resident Student'}
                 </h1>
                 <span className={`badge ${profile?.is_approved ? 'badge-success' : 'badge-warning'}`}>
                   {profile?.is_approved ? 'Approved Resident' : 'Pending Verification'}
                 </span>
               </div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>
                 {profile?.roll_number} • {profile?.department} {profile?.drcc_id && `• DRCC: ${profile.drcc_id}`}
               </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                <span className="badge badge-info">
-                  🏢 {profile?.hostel?.name || 'Hostel'} ({profile?.hostel?.block_number || 'Block-A'})
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.65rem', flexWrap: 'wrap' }}>
+                <span className="badge badge-indigo">
+                  🏢 {profile?.hostel?.name || 'Hostel Block'} ({profile?.hostel?.block_number || 'Block-A'})
                 </span>
-                <span className="badge badge-purple">
+                <span className="badge badge-teal">
                   🛏️ Room {profile?.room?.room_number || 'Unallocated'} ({profile?.room?.room_type || 'Double'})
                 </span>
               </div>
@@ -293,17 +290,20 @@ const StudentDashboard = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <button
               onClick={() => setIsSosModalOpen(true)}
-              className="btn btn-sos"
+              className="btn-sos"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 1.15rem' }}
             >
-              <ShieldAlert size={20} />
+              <ShieldAlert size={18} />
               <span>EMERGENCY SOS</span>
             </button>
             <button
               onClick={loadStudentData}
-              className="btn btn-secondary btn-sm"
+              className="btn-secondary"
+              style={{ padding: '0.65rem 0.85rem' }}
               disabled={loading}
+              title="Refresh Data"
             >
-              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              <RefreshCw size={16} className={loading ? 'spin-anim' : ''} />
             </button>
           </div>
         </div>
@@ -353,14 +353,14 @@ const StudentDashboard = () => {
           </div>
         )}
 
-        {/* Navigation Tabs */}
+        {/* Navigation Tabs Bar */}
         <div style={{
           display: 'flex',
-          gap: '0.5rem',
+          gap: '0.35rem',
           borderBottom: '1px solid var(--border-color)',
           marginBottom: '1.75rem',
           overflowX: 'auto',
-          paddingBottom: '0.5rem'
+          paddingBottom: '0.25rem'
         }}>
           {[
             { id: 'attendance', label: 'Attendance & GPS', icon: Compass },
@@ -370,27 +370,32 @@ const StudentDashboard = () => {
             { id: 'mess', label: 'Mess Menu', icon: Utensils },
             { id: 'payments', label: `Dues & Fees (${payments.filter(p => p.status === 'Pending').length})`, icon: CreditCard },
             { id: 'notices', label: 'Announcements', icon: Megaphone },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+          ].map((t) => {
+            const Icon = t.icon;
+            const isActive = activeTab === t.id;
             return (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className="btn btn-ghost"
+                key={t.id}
+                onClick={() => setActiveTab(t.id)}
                 style={{
-                  background: isActive ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-                  color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                  borderBottom: isActive ? '2px solid #6366f1' : '2px solid transparent',
-                  borderRadius: 'var(--radius-md) var(--radius-md) 0 0',
+                  background: isActive ? '#EEF2FF' : 'transparent',
+                  color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
+                  border: 'none',
+                  borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                  borderRadius: '8px 8px 0 0',
                   fontWeight: isActive ? 700 : 500,
-                  fontSize: '0.88rem',
+                  fontSize: '0.875rem',
                   padding: '0.65rem 1rem',
-                  whiteSpace: 'nowrap'
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'var(--transition)'
                 }}
               >
-                <Icon size={16} color={isActive ? '#818cf8' : 'currentColor'} />
-                <span>{tab.label}</span>
+                <Icon size={16} color={isActive ? 'var(--primary)' : 'currentColor'} />
+                <span>{t.label}</span>
               </button>
             );
           })}
@@ -402,43 +407,35 @@ const StudentDashboard = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
               
               {/* Daily Geofence Check-in Widget */}
-              <div className="glass-card" style={{ padding: '1.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(99, 102, 241, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818cf8' }}>
+              <div className="card" style={{ padding: '1.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
                     <MapPin size={22} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '1.15rem', color: '#ffffff', margin: 0 }}>Daily Smart Geofence Check-in</h3>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>Verify location within hostel GPS perimeter</p>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Smart GPS Geofence Check-in</h3>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>Verify presence within campus boundaries</p>
                   </div>
                 </div>
 
-                <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '1.25rem', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem' }}>
+                <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Today's Status:</span>
+                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Today's Status:</span>
                     <span className={`badge ${todayMarked ? 'badge-success' : 'badge-warning'}`}>
                       {todayMarked ? `Present (${todayStatus})` : 'Not Marked Yet'}
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Hostel: <strong>{profile?.hostel?.name}</strong> • Geofence Radius: <strong>{profile?.hostel?.gps_radius || 200}m</strong>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    Designated Hostel: <strong>{profile?.hostel?.name}</strong> • Perimeter Radius: <strong>{profile?.hostel?.gps_radius || 200}m</strong>
                   </div>
                 </div>
 
                 {gpsResult && (
-                  <div style={{
-                    padding: '0.85rem',
-                    borderRadius: 'var(--radius-md)',
-                    background: gpsResult.success ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                    border: `1px solid ${gpsResult.success ? '#10b981' : '#ef4444'}`,
-                    color: gpsResult.success ? '#34d399' : '#f87171',
-                    fontSize: '0.85rem',
-                    marginBottom: '1rem'
-                  }}>
-                    {gpsResult.message}
+                  <div className={gpsResult.success ? 'alert-success' : 'alert-danger'} style={{ marginBottom: '1.25rem', fontSize: '0.875rem' }}>
+                    <div>{gpsResult.message}</div>
                     {gpsResult.distance !== undefined && (
-                      <div style={{ fontSize: '0.75rem', marginTop: '0.2rem', opacity: 0.9 }}>
-                        Calculated Distance from Hostel: {gpsResult.distance} meters
+                      <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', opacity: 0.9 }}>
+                        Calculated Distance from Geofence Anchor: {gpsResult.distance} meters
                       </div>
                     )}
                   </div>
@@ -447,48 +444,52 @@ const StudentDashboard = () => {
                 <button
                   onClick={handleGpsCheckIn}
                   disabled={gpsLocating}
-                  className="btn btn-primary w-full"
+                  className="btn-primary"
+                  style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 >
-                  <Compass size={18} className={gpsLocating ? 'animate-spin' : ''} />
-                  <span>{gpsLocating ? 'Validating GPS Location...' : todayMarked ? 'Re-verify GPS Attendance' : 'Mark Self Attendance via GPS'}</span>
+                  <Compass size={18} className={gpsLocating ? 'spin-anim' : ''} />
+                  <span>{gpsLocating ? 'Validating Geolocation Coordinates...' : todayMarked ? 'Re-verify GPS Attendance' : 'Mark Self Attendance via GPS'}</span>
                 </button>
               </div>
 
-              {/* Attendance Statistics Box */}
-              <div className="glass-card" style={{ padding: '1.75rem' }}>
-                <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '1rem' }}>Semester Attendance Policy</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.5, marginBottom: '1rem' }}>
-                  A minimum of <strong>75%</strong> hostel attendance is mandatory per semester to maintain resident status and DRCC scholarship compliance.
+              {/* Attendance Policy Box */}
+              <div className="card" style={{ padding: '1.75rem' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.75rem', margin: 0 }}>
+                  Semester Attendance Compliance
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5, marginBottom: '1.25rem' }}>
+                  A minimum of <strong>75%</strong> hostel attendance is mandatory per semester for resident privileges and welfare grants.
                 </p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.3rem' }}>
-                      <span>Current Cumulative Attendance</span>
-                      <span style={{ fontWeight: 700, color: stats?.attendancePercentage >= 75 ? '#34d399' : '#f87171' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Cumulative Percentage</span>
+                      <span style={{ fontWeight: 800, color: stats?.attendancePercentage >= 75 ? 'var(--success)' : 'var(--danger)' }}>
                         {stats?.attendancePercentage || 0}%
                       </span>
                     </div>
-                    <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ height: 10, background: '#E2E8F0', borderRadius: 99, overflow: 'hidden' }}>
                       <div style={{
                         height: '100%',
                         width: `${Math.min(100, stats?.attendancePercentage || 0)}%`,
-                        background: stats?.attendancePercentage >= 75 ? '#10b981' : '#ef4444',
-                        borderRadius: 4
+                        background: stats?.attendancePercentage >= 75 ? 'var(--success)' : 'var(--danger)',
+                        borderRadius: 99,
+                        transition: 'width 0.6s ease'
                       }} />
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.5rem' }}>
-                    <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.75rem', borderRadius: 8, textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#34d399' }}>{stats?.presentDays || 0}</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Days Present</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem' }}>
+                    <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '0.85rem', borderRadius: 8, textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--success)' }}>{stats?.presentDays || 0}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Days Present</div>
                     </div>
-                    <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '0.75rem', borderRadius: 8, textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#f87171' }}>
+                    <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', padding: '0.85rem', borderRadius: 8, textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--danger)' }}>
                         {(stats?.totalAttendanceDays || 0) - (stats?.presentDays || 0)}
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Days Absent</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Days Absent</div>
                     </div>
                   </div>
                 </div>
@@ -497,65 +498,70 @@ const StudentDashboard = () => {
             </div>
 
             {/* Attendance History Table */}
-            <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '1rem' }}>Attendance Log (Last 60 Days)</h3>
-            <div className="table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Status</th>
-                    <th>Verification Mode</th>
-                    <th>Timestamp</th>
-                    <th>Geofence Distance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {attendanceHistory.map((rec) => (
-                    <tr key={rec._id}>
-                      <td style={{ fontWeight: 600, color: '#ffffff' }}>{rec.attendance_date}</td>
-                      <td>
-                        <span className={`badge ${rec.status === 'Present' ? 'badge-success' : rec.status === 'Leave' ? 'badge-warning' : 'badge-danger'}`}>
-                          {rec.status}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                        {rec.marked_by === 'self_gps' ? '📱 GPS Self-Verification' : rec.marked_by === 'warden_manual' ? '👮 Warden Manual Check' : 'System'}
-                      </td>
-                      <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        {rec.marked_at ? new Date(rec.marked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
-                      </td>
-                      <td style={{ fontSize: '0.82rem' }}>
-                        {rec.gps_location?.distance_meters !== null && rec.gps_location?.distance_meters !== undefined ? (
-                          <span style={{ color: rec.gps_location.is_within_radius ? '#34d399' : '#f87171' }}>
-                            {rec.gps_location.distance_meters}m ({rec.gps_location.is_within_radius ? 'Within Bounds' : 'Out of Bounds'})
-                          </span>
-                        ) : (
-                          <span style={{ color: 'var(--text-muted)' }}>-</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {attendanceHistory.length === 0 && (
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Attendance Log (Last 60 Days)</h3>
+              </div>
+              <div className="table-container">
+                <table className="data-table">
+                  <thead>
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                        No attendance records found yet.
-                      </td>
+                      <th>Date</th>
+                      <th>Status</th>
+                      <th>Verification Mode</th>
+                      <th>Timestamp</th>
+                      <th>Geofence Range</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {attendanceHistory.map((rec) => (
+                      <tr key={rec._id}>
+                        <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{rec.attendance_date}</td>
+                        <td>
+                          <span className={`badge ${rec.status === 'Present' ? 'badge-success' : rec.status === 'Leave' ? 'badge-warning' : 'badge-danger'}`}>
+                            {rec.status}
+                          </span>
+                        </td>
+                        <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                          {rec.marked_by === 'self_gps' ? '📱 GPS Self-Verification' : rec.marked_by === 'warden_manual' ? '👮 Warden Manual Check' : 'System'}
+                        </td>
+                        <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          {rec.marked_at ? new Date(rec.marked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
+                        </td>
+                        <td style={{ fontSize: '0.82rem' }}>
+                          {rec.gps_location?.distance_meters !== null && rec.gps_location?.distance_meters !== undefined ? (
+                            <span style={{ fontWeight: 600, color: rec.gps_location.is_within_radius ? 'var(--success)' : 'var(--danger)' }}>
+                              {rec.gps_location.distance_meters}m ({rec.gps_location.is_within_radius ? 'Within Radius' : 'Out of Bounds'})
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {attendanceHistory.length === 0 && (
+                      <tr>
+                        <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                          No attendance records found yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
 
         {/* TAB 2: LEAVES */}
         {activeTab === 'leaves' && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.3rem', color: '#ffffff' }}>Outstation & Medical Leave Applications</h2>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Outstation & Medical Leave Applications</h2>
               <button
                 onClick={() => setIsLeaveModalOpen(true)}
-                className="btn btn-primary btn-sm"
+                className="btn-primary"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', fontSize: '0.875rem' }}
               >
                 <Plus size={16} />
                 <span>Apply for Leave</span>
@@ -577,9 +583,9 @@ const StudentDashboard = () => {
                 <tbody>
                   {leaves.map((leave) => (
                     <tr key={leave._id}>
-                      <td><span className="badge badge-info">{leave.from_date}</span></td>
-                      <td><span className="badge badge-info">{leave.to_date}</span></td>
-                      <td style={{ maxWidth: '300px', fontSize: '0.85rem' }}>{leave.reason}</td>
+                      <td><span className="badge badge-indigo">{leave.from_date}</span></td>
+                      <td><span className="badge badge-indigo">{leave.to_date}</span></td>
+                      <td style={{ maxWidth: '300px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{leave.reason}</td>
                       <td>
                         <span className={`badge ${leave.status === 'Approved' ? 'badge-success' : leave.status === 'Rejected' ? 'badge-danger' : 'badge-warning'}`}>
                           {leave.status}
@@ -589,13 +595,13 @@ const StudentDashboard = () => {
                         {new Date(leave.created_at).toLocaleDateString()}
                       </td>
                       <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                        {leave.warden_remarks || <span style={{ color: 'var(--text-muted)' }}>Awaiting warden review</span>}
+                        {leave.warden_remarks || <span style={{ color: 'var(--text-muted)' }}>Awaiting review</span>}
                       </td>
                     </tr>
                   ))}
                   {leaves.length === 0 && (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
                         You haven't submitted any leave applications.
                       </td>
                     </tr>
@@ -608,12 +614,13 @@ const StudentDashboard = () => {
 
         {/* TAB 3: COMPLAINTS */}
         {activeTab === 'complaints' && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.3rem', color: '#ffffff' }}>Hostel Maintenance Grievances</h2>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Hostel Maintenance Grievances</h2>
               <button
                 onClick={() => setIsComplaintModalOpen(true)}
-                className="btn btn-primary btn-sm"
+                className="btn-primary"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', fontSize: '0.875rem' }}
               >
                 <Plus size={16} />
                 <span>Lodge Complaint</span>
@@ -639,16 +646,16 @@ const StudentDashboard = () => {
                         <span className="badge badge-purple">{c.category}</span>
                       </td>
                       <td>
-                        <span className={`badge ${c.priority === 'Urgent' ? 'badge-danger' : c.priority === 'High' ? 'badge-warning' : 'badge-info'}`}>
+                        <span className={`badge ${c.priority === 'Urgent' ? 'badge-danger' : c.priority === 'High' ? 'badge-warning' : 'badge-indigo'}`}>
                           {c.priority || 'Medium'}
                         </span>
                       </td>
-                      <td style={{ maxWidth: '340px', fontSize: '0.85rem' }}>{c.description}</td>
+                      <td style={{ maxWidth: '340px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{c.description}</td>
                       <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                         {new Date(c.created_at).toLocaleDateString()}
                       </td>
                       <td>
-                        <span className={`badge ${c.status === 'Resolved' ? 'badge-success' : c.status === 'In Progress' ? 'badge-info' : 'badge-warning'}`}>
+                        <span className={`badge ${c.status === 'Resolved' ? 'badge-success' : c.status === 'In Progress' ? 'badge-indigo' : 'badge-warning'}`}>
                           {c.status}
                         </span>
                       </td>
@@ -659,8 +666,8 @@ const StudentDashboard = () => {
                   ))}
                   {complaints.length === 0 && (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                        No complaints filed.
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                        No complaints filed. Everything is in order!
                       </td>
                     </tr>
                   )}
@@ -676,63 +683,63 @@ const StudentDashboard = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
               
               {/* Current Room Allotment Card */}
-              <div className="glass-card" style={{ padding: '1.75rem' }}>
+              <div className="card" style={{ padding: '1.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(99, 102, 241, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818cf8' }}>
-                    <Bed size={24} />
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                    <Bed size={22} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '1.2rem', color: '#ffffff', margin: 0 }}>Current Room Allocation</h3>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Hostel: {profile?.hostel?.name}</p>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Current Room Allocation</h3>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>Hostel: {profile?.hostel?.name}</p>
                   </div>
                 </div>
 
-                <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '1.25rem', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem' }}>
+                <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Room Number:</span>
-                    <span style={{ fontWeight: 800, color: '#ffffff', fontSize: '1.1rem' }}>{profile?.room?.room_number || 'Unassigned'}</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Room Number:</span>
+                    <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.1rem' }}>{profile?.room?.room_number || 'Unassigned'}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Room Type:</span>
-                    <span className="badge badge-info">{profile?.room?.room_type || 'Double'}</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Layout Type:</span>
+                    <span className="badge badge-indigo">{profile?.room?.room_type || 'Double'}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Block:</span>
-                    <span style={{ color: '#ffffff' }}>{profile?.hostel?.block_number || 'Block-A'}</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Block / Wing:</span>
+                    <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{profile?.hostel?.block_number || 'Block-A'}</span>
                   </div>
                 </div>
 
                 {/* Roommates Roster */}
-                <h4 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <h4 style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
                   Roommates ({roommates.length})
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {roommates.map((rm) => (
-                    <div key={rm._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.03)', padding: '0.6rem 0.85rem', borderRadius: 8 }}>
+                    <div key={rm._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F8FAFC', border: '1px solid var(--border-color)', padding: '0.65rem 0.85rem', borderRadius: 8 }}>
                       <div>
-                        <div style={{ fontWeight: 600, color: '#ffffff', fontSize: '0.85rem' }}>{rm.full_name}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{rm.department} • {rm.roll_number}</div>
+                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.875rem' }}>{rm.full_name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{rm.department} • {rm.roll_number}</div>
                       </div>
-                      {rm.phone && <span style={{ fontSize: '0.78rem', color: '#a5b4fc' }}>📞 {rm.phone}</span>}
+                      {rm.phone && <span style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600 }}>📞 {rm.phone}</span>}
                     </div>
                   ))}
                   {roommates.length === 0 && (
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No roommates currently assigned in this room.</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>No other roommates currently assigned in this room.</div>
                   )}
                 </div>
               </div>
 
               {/* Submit Room Transfer Request Form */}
-              <div className="glass-card" style={{ padding: '1.75rem' }}>
-                <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '0.5rem' }}>
+              <div className="card" style={{ padding: '1.75rem' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem', margin: 0 }}>
                   Request Room Change / Transfer
                 </h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-                  Submit a formal room change request to the hostel administration.
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1.25rem' }}>
+                  Submit a formal room change request to hostel management.
                 </p>
 
                 <form onSubmit={handleRoomRequest}>
-                  <div className="form-group">
+                  <div style={{ marginBottom: '1.25rem' }}>
                     <label className="form-label">Preferred Bed / Room Type *</label>
                     <select
                       value={roomReqForm.preferred_room_type}
@@ -746,19 +753,19 @@ const StudentDashboard = () => {
                     </select>
                   </div>
 
-                  <div className="form-group">
+                  <div style={{ marginBottom: '1.25rem' }}>
                     <label className="form-label">Reason for Transfer *</label>
                     <textarea
                       rows={3}
                       required
                       value={roomReqForm.reason}
                       onChange={(e) => setRoomReqForm({ ...roomReqForm, reason: e.target.value })}
-                      placeholder="e.g. Need quiet single room for study / health reasons..."
+                      placeholder="e.g. Need single room for exam prep / medical condition..."
                       className="form-textarea"
                     />
                   </div>
 
-                  <button type="submit" className="btn btn-primary w-full" style={{ marginTop: '0.5rem' }}>
+                  <button type="submit" className="btn-primary" style={{ width: '100%', padding: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                     <Send size={16} />
                     <span>Submit Transfer Request</span>
                   </button>
@@ -768,51 +775,55 @@ const StudentDashboard = () => {
             </div>
 
             {/* Room Change Request History Table */}
-            <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '1rem' }}>My Room Transfer Requests</h3>
-            <div className="table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Date Requested</th>
-                    <th>Current Room</th>
-                    <th>Preferred Type</th>
-                    <th>Reason</th>
-                    <th>Status</th>
-                    <th>Admin / Warden Remarks</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {roomRequests.map((req) => (
-                    <tr key={req._id}>
-                      <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                        {new Date(req.created_at).toLocaleDateString()}
-                      </td>
-                      <td>
-                        {req.current_room ? `${req.current_room.room_number} (${req.current_room.room_type})` : 'Unassigned'}
-                      </td>
-                      <td>
-                        <span className="badge badge-purple">{req.preferred_room_type}</span>
-                      </td>
-                      <td style={{ maxWidth: '280px', fontSize: '0.85rem' }}>{req.reason}</td>
-                      <td>
-                        <span className={`badge ${req.status === 'Approved' ? 'badge-success' : req.status === 'Rejected' ? 'badge-danger' : 'badge-warning'}`}>
-                          {req.status}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                        {req.admin_remarks || (req.target_room ? `Allocated to Room ${req.target_room.room_number}` : <span style={{ color: 'var(--text-muted)' }}>Under review</span>)}
-                      </td>
-                    </tr>
-                  ))}
-                  {roomRequests.length === 0 && (
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>My Room Transfer Requests</h3>
+              </div>
+              <div className="table-container">
+                <table className="data-table">
+                  <thead>
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                        No room transfer requests filed yet.
-                      </td>
+                      <th>Date Requested</th>
+                      <th>Current Room</th>
+                      <th>Preferred Type</th>
+                      <th>Reason</th>
+                      <th>Status</th>
+                      <th>Admin Remarks</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {roomRequests.map((req) => (
+                      <tr key={req._id}>
+                        <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                          {new Date(req.created_at).toLocaleDateString()}
+                        </td>
+                        <td>
+                          {req.current_room ? `${req.current_room.room_number} (${req.current_room.room_type})` : 'Unassigned'}
+                        </td>
+                        <td>
+                          <span className="badge badge-purple">{req.preferred_room_type}</span>
+                        </td>
+                        <td style={{ maxWidth: '280px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{req.reason}</td>
+                        <td>
+                          <span className={`badge ${req.status === 'Approved' ? 'badge-success' : req.status === 'Rejected' ? 'badge-danger' : 'badge-warning'}`}>
+                            {req.status}
+                          </span>
+                        </td>
+                        <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                          {req.admin_remarks || (req.target_room ? `Allocated to Room ${req.target_room.room_number}` : <span style={{ color: 'var(--text-muted)' }}>Under review</span>)}
+                        </td>
+                      </tr>
+                    ))}
+                    {roomRequests.length === 0 && (
+                      <tr>
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                          No room transfer requests filed yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -822,8 +833,8 @@ const StudentDashboard = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <h2 style={{ fontSize: '1.3rem', color: '#ffffff' }}>Weekly Mess Dining Menu</h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Nutritious & hygienic meal schedule</p>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Weekly Mess Dining Menu</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: '0.2rem 0 0 0' }}>Nutritious & hygienic meal schedule</p>
               </div>
 
               {/* Day Selector */}
@@ -832,7 +843,17 @@ const StudentDashboard = () => {
                   <button
                     key={day}
                     onClick={() => setSelectedDay(day)}
-                    className={`btn btn-sm ${selectedDay === day ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{
+                      padding: '0.45rem 0.85rem',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      background: selectedDay === day ? 'var(--primary)' : '#FFFFFF',
+                      color: selectedDay === day ? '#FFFFFF' : 'var(--text-secondary)',
+                      fontSize: '0.85rem',
+                      fontWeight: selectedDay === day ? 700 : 500,
+                      cursor: 'pointer',
+                      transition: 'var(--transition)'
+                    }}
                   >
                     {day}
                   </button>
@@ -844,15 +865,15 @@ const StudentDashboard = () => {
               {['Breakfast', 'Lunch', 'Snacks', 'Dinner'].map((meal) => {
                 const item = filteredDayMenu.find((m) => m.meal_type === meal);
                 return (
-                  <div key={meal} className="glass-card" style={{ padding: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                      <h3 style={{ fontSize: '1.2rem', color: '#ffffff' }}>{meal}</h3>
+                  <div key={meal} className="card" style={{ padding: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{meal}</h3>
                       <span className="badge badge-purple">{selectedDay}</span>
                     </div>
 
-                    <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '1rem', borderRadius: 'var(--radius-md)', minHeight: '90px', display: 'flex', alignItems: 'center' }}>
-                      <p style={{ color: '#e2e8f0', fontSize: '0.9rem', lineHeight: 1.5 }}>
-                        {item?.menu_item || 'Menu update in progress by mess manager.'}
+                    <div style={{ background: '#F8FAFC', padding: '1.15rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', minHeight: '90px', display: 'flex', alignItems: 'center' }}>
+                      <p style={{ color: 'var(--text-primary)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
+                        {item?.menu_item || 'Menu update in progress by hostel mess team.'}
                       </p>
                     </div>
                   </div>
@@ -864,10 +885,12 @@ const StudentDashboard = () => {
 
         {/* TAB 6: DUES & PAYMENTS */}
         {activeTab === 'payments' && (
-          <div>
-            <h2 style={{ fontSize: '1.3rem', color: '#ffffff', marginBottom: '1.25rem' }}>
-              Fee Invoices & Fine Payment Portal
-            </h2>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                Fee Invoices & Fine Payment Portal
+              </h2>
+            </div>
 
             <div className="table-container">
               <table className="data-table">
@@ -885,10 +908,10 @@ const StudentDashboard = () => {
                   {payments.map((p) => (
                     <tr key={p._id}>
                       <td>
-                        <span className="badge badge-info">{p.fine_type}</span>
+                        <span className="badge badge-indigo">{p.fine_type}</span>
                       </td>
-                      <td style={{ fontSize: '0.85rem' }}>{p.description || 'Hostel Fee / Fine Invoice'}</td>
-                      <td style={{ fontSize: '1.1rem', fontWeight: 800, color: '#ffffff' }}>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{p.description || 'Hostel Fee / Fine Invoice'}</td>
+                      <td style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                         ₹{p.amount.toLocaleString('en-IN')}
                       </td>
                       <td>
@@ -896,10 +919,10 @@ const StudentDashboard = () => {
                           {p.status}
                         </span>
                       </td>
-                      <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                         {p.transaction_id ? (
                           <div>
-                            <span style={{ color: '#34d399', fontWeight: 600 }}>{p.transaction_id}</span>
+                            <span style={{ color: 'var(--success)', fontWeight: 700 }}>{p.transaction_id}</span>
                             <br />
                             {p.payment_date && new Date(p.payment_date).toLocaleDateString()}
                           </div>
@@ -911,15 +934,17 @@ const StudentDashboard = () => {
                         {p.status === 'Pending' ? (
                           <button
                             onClick={() => handlePayFee(p._id)}
-                            className="btn btn-success btn-sm"
+                            className="btn-primary"
+                            style={{ background: 'var(--success)', borderColor: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.45rem 0.85rem', fontSize: '0.85rem' }}
                           >
                             <CreditCard size={15} />
-                            <span>Pay ₹{p.amount} Now</span>
+                            <span>Pay ₹{p.amount}</span>
                           </button>
                         ) : (
                           <button
                             onClick={() => setSelectedPaymentForReceipt(p)}
-                            className="btn btn-secondary btn-sm"
+                            className="btn-secondary"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.45rem 0.85rem', fontSize: '0.85rem' }}
                           >
                             <Printer size={14} />
                             <span>Receipt</span>
@@ -930,7 +955,7 @@ const StudentDashboard = () => {
                   ))}
                   {payments.length === 0 && (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
                         No fee invoices or fines issued. Your account is clear!
                       </td>
                     </tr>
@@ -944,31 +969,31 @@ const StudentDashboard = () => {
         {/* TAB 7: NOTICES */}
         {activeTab === 'notices' && (
           <div>
-            <h2 style={{ fontSize: '1.3rem', color: '#ffffff', marginBottom: '1.25rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '1.25rem' }}>
               Campus & Hostel Announcements
             </h2>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
               {notices.map((n) => (
-                <div key={n._id} className="glass-card" style={{ padding: '1.5rem', border: n.is_pinned ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-color)' }}>
+                <div key={n._id} className="card" style={{ padding: '1.5rem', border: n.is_pinned ? '1px solid #FCD34D' : '1px solid var(--border-color)', background: n.is_pinned ? '#FFFDF5' : '#FFFFFF' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
-                      <span className="badge badge-info">{n.category}</span>
+                      <span className="badge badge-indigo">{n.category}</span>
                       {n.is_pinned && <span className="badge badge-warning">📌 Pinned</span>}
                     </div>
                   </div>
 
-                  <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '0.4rem' }}>{n.title}</h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.5, marginBottom: '1rem' }}>{n.content}</p>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>{n.title}</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.6, marginBottom: '1rem' }}>{n.content}</p>
 
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-color)', paddingTop: '0.65rem' }}>
-                    Posted by: <strong>{n.posted_by}</strong> • {new Date(n.created_at).toLocaleDateString()}
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-color)', paddingTop: '0.65rem' }}>
+                    Posted by: <strong style={{ color: 'var(--text-primary)' }}>{n.posted_by}</strong> • {new Date(n.created_at).toLocaleDateString()}
                   </div>
                 </div>
               ))}
               {notices.length === 0 && (
-                <div className="glass-card" style={{ padding: '2.5rem', textAlign: 'center', gridColumn: '1 / -1' }}>
-                  <Megaphone size={36} color="#818cf8" style={{ margin: '0 auto 1rem' }} />
+                <div className="card" style={{ padding: '3rem', textAlign: 'center', gridColumn: '1 / -1' }}>
+                  <Megaphone size={36} color="var(--primary)" style={{ margin: '0 auto 1rem' }} />
                   <p style={{ color: 'var(--text-secondary)' }}>No notices posted yet.</p>
                 </div>
               )}
@@ -985,8 +1010,8 @@ const StudentDashboard = () => {
         title="Apply for Outstation / Medical Leave"
       >
         <form onSubmit={handleApplyLeave}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="form-group">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+            <div>
               <label className="form-label">From Date *</label>
               <input
                 type="date"
@@ -996,7 +1021,7 @@ const StudentDashboard = () => {
                 className="form-input"
               />
             </div>
-            <div className="form-group">
+            <div>
               <label className="form-label">To Date *</label>
               <input
                 type="date"
@@ -1008,27 +1033,27 @@ const StudentDashboard = () => {
             </div>
           </div>
 
-          <div className="form-group">
+          <div style={{ marginBottom: '1.5rem' }}>
             <label className="form-label">Reason for Leave *</label>
             <textarea
               rows={3}
               required
               value={leaveForm.reason}
               onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
-              placeholder="e.g. Attending family function, medical appointment, etc."
+              placeholder="e.g. Attending sister's wedding / medical appointment..."
               className="form-textarea"
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
             <button
               type="button"
               onClick={() => setIsLeaveModalOpen(false)}
-              className="btn btn-secondary"
+              className="btn-secondary"
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
+            <button type="submit" className="btn-primary">
               Submit Leave Application
             </button>
           </div>
@@ -1042,8 +1067,8 @@ const StudentDashboard = () => {
         title="Lodge Maintenance Ticket"
       >
         <form onSubmit={handleLodgeComplaint}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="form-group">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+            <div>
               <label className="form-label">Issue Category *</label>
               <select
                 value={complaintForm.category}
@@ -1062,7 +1087,7 @@ const StudentDashboard = () => {
               </select>
             </div>
 
-            <div className="form-group">
+            <div>
               <label className="form-label">Priority Level *</label>
               <select
                 value={complaintForm.priority}
@@ -1077,7 +1102,7 @@ const StudentDashboard = () => {
             </div>
           </div>
 
-          <div className="form-group">
+          <div style={{ marginBottom: '1.5rem' }}>
             <label className="form-label">Detailed Description *</label>
             <textarea
               rows={3}
@@ -1089,15 +1114,15 @@ const StudentDashboard = () => {
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
             <button
               type="button"
               onClick={() => setIsComplaintModalOpen(false)}
-              className="btn btn-secondary"
+              className="btn-secondary"
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
+            <button type="submit" className="btn-primary">
               Lodge Ticket
             </button>
           </div>
@@ -1111,11 +1136,11 @@ const StudentDashboard = () => {
         title="🚨 Broadcast Emergency SOS"
       >
         <form onSubmit={handleTriggerSos}>
-          <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', color: '#f87171', fontSize: '0.88rem' }}>
+          <div className="alert-danger" style={{ marginBottom: '1.25rem', fontSize: '0.88rem' }}>
             <strong>WARNING:</strong> Triggering an SOS alert will immediately dispatch high-priority notifications to the Chief Warden, Hostel Staff, and Security desk with your room and hostel location.
           </div>
 
-          <div className="form-group">
+          <div style={{ marginBottom: '1.25rem' }}>
             <label className="form-label">Emergency Message / Nature of Distress</label>
             <textarea
               rows={3}
@@ -1128,20 +1153,20 @@ const StudentDashboard = () => {
           </div>
 
           {sosSuccess && (
-            <div style={{ color: '#34d399', fontSize: '0.85rem', marginBottom: '1rem', fontWeight: 600 }}>
+            <div className="alert-success" style={{ marginBottom: '1.25rem', fontSize: '0.875rem' }}>
               {sosSuccess}
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
             <button
               type="button"
               onClick={() => setIsSosModalOpen(false)}
-              className="btn btn-secondary"
+              className="btn-secondary"
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-sos">
+            <button type="submit" className="btn-sos" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <ShieldAlert size={18} />
               <span>Broadcast SOS Now</span>
             </button>
@@ -1153,44 +1178,44 @@ const StudentDashboard = () => {
       <Modal
         isOpen={!!selectedPaymentForReceipt}
         onClose={() => setSelectedPaymentForReceipt(null)}
-        title="Fee Payment Receipt"
+        title="Official Fee Payment Receipt"
       >
         {selectedPaymentForReceipt && (
           <div>
-            <div className="printable-receipt" style={{ background: '#0b0f19', padding: '1.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '1.25rem' }}>
-              <div style={{ textAlign: 'center', marginBottom: '1.25rem', borderBottom: '1px dashed rgba(255,255,255,0.15)', paddingBottom: '1rem' }}>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#ffffff' }}>CampusHome Hostel Management</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Official Electronic Payment Voucher</div>
+            <div className="printable-receipt" style={{ background: '#FFFFFF', padding: '1.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '1.25rem' }}>
+              <div style={{ textAlign: 'center', marginBottom: '1.25rem', borderBottom: '1px dashed var(--border-color)', paddingBottom: '1rem' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>CampusHome Hostel Management</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Official Electronic Payment Voucher</div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.85rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.875rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Resident Name:</span>
-                  <span style={{ fontWeight: 600, color: '#ffffff' }}>{profile?.full_name}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>Resident Name:</span>
+                  <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{profile?.full_name}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Roll Number:</span>
-                  <span style={{ color: '#ffffff' }}>{profile?.roll_number}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>Roll Number:</span>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{profile?.roll_number}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Hostel & Room:</span>
-                  <span style={{ color: '#ffffff' }}>{profile?.hostel?.name} (Room {profile?.room?.room_number || 'N/A'})</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>Hostel & Room:</span>
+                  <span style={{ color: 'var(--text-primary)' }}>{profile?.hostel?.name} (Room {profile?.room?.room_number || 'N/A'})</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Payment Type:</span>
-                  <span className="badge badge-info">{selectedPaymentForReceipt.fine_type}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>Payment Type:</span>
+                  <span className="badge badge-indigo">{selectedPaymentForReceipt.fine_type}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Transaction ID:</span>
-                  <span style={{ color: '#34d399', fontWeight: 700 }}>{selectedPaymentForReceipt.transaction_id}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>Transaction ID:</span>
+                  <span style={{ color: 'var(--primary)', fontWeight: 700, fontFamily: 'monospace' }}>{selectedPaymentForReceipt.transaction_id}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Payment Date:</span>
-                  <span style={{ color: '#ffffff' }}>{selectedPaymentForReceipt.payment_date ? new Date(selectedPaymentForReceipt.payment_date).toLocaleString() : new Date().toLocaleString()}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>Payment Date:</span>
+                  <span style={{ color: 'var(--text-primary)' }}>{selectedPaymentForReceipt.payment_date ? new Date(selectedPaymentForReceipt.payment_date).toLocaleString() : new Date().toLocaleString()}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontSize: '1rem', fontWeight: 700, color: '#ffffff' }}>Total Paid Amount:</span>
-                  <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#34d399' }}>₹{selectedPaymentForReceipt.amount}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                  <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Total Paid Amount:</span>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--success)' }}>₹{selectedPaymentForReceipt.amount}</span>
                 </div>
               </div>
             </div>
@@ -1198,13 +1223,14 @@ const StudentDashboard = () => {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
               <button
                 onClick={() => setSelectedPaymentForReceipt(null)}
-                className="btn btn-secondary"
+                className="btn-secondary"
               >
                 Close
               </button>
               <button
                 onClick={() => window.print()}
-                className="btn btn-primary"
+                className="btn-primary"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
               >
                 <Printer size={16} />
                 <span>Print Receipt</span>
