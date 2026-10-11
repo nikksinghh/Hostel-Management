@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Production build outputs
+dist/
+client/dist/
+build/
+
+# Local Environment Variables & Secrets (NEVER COMMIT SECRETS)
+.env
+.env.*
+!.env.example
+*.env
+client/.env
+client/.env.*
+!client/.env.example
+server/.env
+server/.env.*
+!server/.env.example
+
+# Backups & Archives
+backups/
+*.tar.gz
+*.zip
+*.bak
+
+# Uploads & Private User Files (Keep empty placeholder directories)
+server/uploads/*
+!server/uploads/.gitkeep
+server/uploads/profiles/*
+!server/uploads/profiles/.gitkeep
+server/uploads/documents/*
+!server/uploads/documents/.gitkeep
+server/uploads/complaints/*
+!server/uploads/complaints/.gitkeep
+
+# Logs & Diagnostics
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# System & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Scratch & Temporary
+scratch/
+.system_generated/

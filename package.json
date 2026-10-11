@@ -1,0 +1,21 @@
+{
+  "name": "campushome-hostel-management-system",
+  "version": "1.0.0",
+  "description": "CampusHome - Full-Stack MERN Hostel Management System",
+  "scripts": {
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm run dev",
+    "seed": "cd server && npm run seed",
+    "install:all": "cd server && npm install && cd ../client && npm install"
+  },
+  "keywords": [
+    "hostel-management",
+    "mern",
+    "react",
+    "nodejs",
+    "express",
+    "mongodb"
+  ],
+  "author": "CampusHome Team",
+  "license": "ISC"
+}
