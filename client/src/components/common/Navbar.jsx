@@ -7,17 +7,23 @@ import {
   ShieldAlert,
   Bell,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react';
 import api from '../../api/axios';
+import { useTheme } from '../../context/ThemeContext';
 
 const Navbar = ({ sosActiveCount = 0 }) => {
   const { user, role, logout, token } = useAuth();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
 
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
 
   const handleLogout = () => {
@@ -34,7 +40,7 @@ const Navbar = ({ sosActiveCount = 0 }) => {
         setNotifications(res.data.notifications || []);
         setUnreadCount(res.data.unreadCount || 0);
       }
-    } catch (e) {
+    } catch {
       // ignore
     } finally {
       setLoadingNotifs(false);
@@ -180,7 +186,7 @@ const Navbar = ({ sosActiveCount = 0 }) => {
                   top: '46px',
                   width: '360px',
                   maxHeight: '440px',
-                  background: '#FFFFFF',
+                  background: 'var(--bg-surface)',
                   border: '1px solid var(--border-color)',
                   borderRadius: 'var(--radius-lg)',
                   boxShadow: 'var(--shadow-xl)',
@@ -195,7 +201,7 @@ const Navbar = ({ sosActiveCount = 0 }) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    background: '#F8FAFC'
+                    background: 'var(--bg-subtle)'
                   }}>
                     <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span>Notifications</span>
@@ -248,9 +254,96 @@ const Navbar = ({ sosActiveCount = 0 }) => {
             </div>
           )}
 
+          {/* Theme Switcher Toggle */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setIsThemeOpen(!isThemeOpen)}
+              className="btn btn-ghost btn-sm"
+              style={{
+                padding: '0.55rem',
+                borderRadius: '50%',
+                color: 'var(--text-secondary)',
+                background: isThemeOpen ? 'var(--bg-subtle)' : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              title={`Theme: ${theme.charAt(0).toUpperCase() + theme.slice(1)}`}
+              aria-label="Toggle display theme"
+            >
+              {resolvedTheme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
+            </button>
+
+            {isThemeOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: '46px',
+                  width: '140px',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: 'var(--shadow-xl)',
+                  zIndex: 210,
+                  padding: '0.35rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.2rem',
+                }}
+              >
+                <button
+                  onClick={() => { setTheme('light'); setIsThemeOpen(false); }}
+                  className="btn btn-ghost btn-sm"
+                  style={{
+                    width: '100%',
+                    justifyContent: 'flex-start',
+                    gap: '0.5rem',
+                    fontSize: '0.82rem',
+                    fontWeight: theme === 'light' ? 700 : 500,
+                    color: theme === 'light' ? 'var(--accent-primary)' : 'var(--text-primary)',
+                    background: theme === 'light' ? 'var(--accent-primary-subtle)' : 'transparent',
+                  }}
+                >
+                  <Sun size={14} /> Light
+                </button>
+                <button
+                  onClick={() => { setTheme('dark'); setIsThemeOpen(false); }}
+                  className="btn btn-ghost btn-sm"
+                  style={{
+                    width: '100%',
+                    justifyContent: 'flex-start',
+                    gap: '0.5rem',
+                    fontSize: '0.82rem',
+                    fontWeight: theme === 'dark' ? 700 : 500,
+                    color: theme === 'dark' ? 'var(--accent-primary)' : 'var(--text-primary)',
+                    background: theme === 'dark' ? 'var(--accent-primary-subtle)' : 'transparent',
+                  }}
+                >
+                  <Moon size={14} /> Dark
+                </button>
+                <button
+                  onClick={() => { setTheme('system'); setIsThemeOpen(false); }}
+                  className="btn btn-ghost btn-sm"
+                  style={{
+                    width: '100%',
+                    justifyContent: 'flex-start',
+                    gap: '0.5rem',
+                    fontSize: '0.82rem',
+                    fontWeight: theme === 'system' ? 700 : 500,
+                    color: theme === 'system' ? 'var(--accent-primary)' : 'var(--text-primary)',
+                    background: theme === 'system' ? 'var(--accent-primary-subtle)' : 'transparent',
+                  }}
+                >
+                  <Monitor size={14} /> System
+                </button>
+              </div>
+            )}
+          </div>
+
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', background: '#F8FAFC', padding: '0.35rem 0.75rem', borderRadius: 'var(--radius-full)', border: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', background: 'var(--bg-subtle)', padding: '0.35rem 0.75rem', borderRadius: 'var(--radius-full)', border: '1px solid var(--border-color)' }}>
                 <div style={{
                   width: '30px',
                   height: '30px',

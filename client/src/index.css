@@ -84,6 +84,66 @@
   --transition-smooth: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+[data-theme="dark"] {
+  /* Surfaces & Backgrounds */
+  --bg-primary: #0B0F19;       /* Deep charcoal/navy background */
+  --bg-surface: #111827;       /* Dark slate card and panel surface */
+  --bg-subtle: #1F2937;        /* Secondary dark slate surface */
+  --bg-sidebar: #090D16;       /* Ultra-deep navy sidebar */
+  --bg-sidebar-hover: #162032; /* Hover background */
+  --bg-sidebar-active: #1E293B;/* Active menu background */
+
+  /* Text & Content Hierarchy */
+  --text-primary: #F3F4F6;     /* High-contrast crisp light gray */
+  --text-secondary: #9CA3AF;   /* Muted readable slate */
+  --text-muted: #6B7280;       /* Dark muted placeholder */
+  --text-sidebar: #9CA3AF;
+  --text-sidebar-active: #FFFFFF;
+
+  /* Brand Accents */
+  --accent-primary: #6366F1;        /* Slightly brighter indigo for dark mode */
+  --accent-primary-hover: #818CF8;
+  --accent-primary-subtle: rgba(99, 102, 241, 0.15);
+  --accent-teal: #14B8A6;
+  --accent-teal-hover: #2DD4BF;
+  --accent-teal-subtle: rgba(20, 184, 166, 0.15);
+
+  /* Functional Status Colors */
+  --success: #34D399;
+  --success-bg: rgba(16, 185, 129, 0.15);
+  --success-text: #6EE7B7;
+  --success-border: rgba(52, 211, 153, 0.3);
+
+  --warning: #FBBF24;
+  --warning-bg: rgba(245, 158, 11, 0.15);
+  --warning-text: #FDE68A;
+  --warning-border: rgba(251, 191, 36, 0.3);
+
+  --danger: #F87171;
+  --danger-bg: rgba(239, 68, 68, 0.15);
+  --danger-text: #FCA5A5;
+  --danger-border: rgba(248, 113, 113, 0.3);
+
+  --info: #38BDF8;
+  --info-bg: rgba(2, 132, 199, 0.15);
+  --info-text: #7DD3FC;
+  --info-border: rgba(56, 189, 248, 0.3);
+
+  /* Borders & Dividers */
+  --border-color: #1F2937;     /* Dark border */
+  --border-subtle: #162032;
+  --border-focus: #6366F1;
+
+  /* Shadow Scale for Dark Mode */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 10px -2px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 12px 20px -4px rgba(0, 0, 0, 0.7);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.8);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 8px 16px -2px rgba(0, 0, 0, 0.6);
+}
+
 /* ==========================================================================
    CSS Reset & Base Rules
    ========================================================================== */

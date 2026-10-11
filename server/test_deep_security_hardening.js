@@ -16,10 +16,13 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import Student from './models/Student.js';
 import Admin from './models/Admin.js';
+import app from './server.js';
 
 dotenv.config();
 
-const BASE_URL = 'http://localhost:5050';
+const PORT = 5055;
+const BASE_URL = `http://127.0.0.1:${PORT}`;
+let server;
 
 function request(path, options = {}) {
     return new Promise((resolve, reject) => {
@@ -80,7 +83,9 @@ async function runTests() {
     console.log('   CAMPUSHOME DEEP SECURITY HARDENING TEST SUITE   ');
     console.log('====================================================\n');
 
-    await mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/campushome');
+    server = app.listen(PORT, () => console.log(`Test server running on port ${PORT}`));
+    await new Promise((r) => setTimeout(r, 1000));
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/campushome');
 
     const runId = Math.floor(Math.random() * 900000 + 100000);
 
@@ -482,12 +487,14 @@ async function runTests() {
     console.log(`DEEP SECURITY TEST RESULTS: ${passed} PASSED, ${failed} FAILED`);
     console.log('====================================================\n');
 
+    if (server) server.close();
     await mongoose.disconnect();
     process.exit(failed > 0 ? 1 : 0);
 }
 
 runTests().catch(async err => {
     console.error('Test execution fatal error:', err);
+    if (server) server.close();
     try { await mongoose.disconnect(); } catch {}
     process.exit(1);
 });

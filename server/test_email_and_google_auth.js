@@ -1,9 +1,12 @@
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import app from './server.js';
 dotenv.config();
 
-const API_BASE = 'http://localhost:5050/api';
+const PORT = 5056;
+const API_BASE = `http://127.0.0.1:${PORT}/api`;
+let server;
 let passed = 0;
 let failed = 0;
 
@@ -22,6 +25,8 @@ async function runTests() {
   console.log('TEST SUITE: BREVO EMAIL VERIFICATION & GOOGLE AUTH');
   console.log('====================================================\n');
 
+  server = app.listen(PORT, () => console.log(`Test server running on port ${PORT}`));
+  await new Promise((r) => setTimeout(r, 1000));
   await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/campushome');
 
   const Student = (await import('./models/Student.js')).default;
@@ -288,11 +293,14 @@ async function runTests() {
   console.log(`SUMMARY: ${passed} PASSED, ${failed} FAILED`);
   console.log('====================================================\n');
 
+  if (server) server.close();
   await mongoose.disconnect();
   process.exit(failed > 0 ? 1 : 0);
 }
 
-runTests().catch((err) => {
+runTests().catch(async (err) => {
   console.error('Test execution error:', err);
+  if (server) server.close();
+  try { await mongoose.disconnect(); } catch {}
   process.exit(1);
 });

@@ -160,11 +160,12 @@ const LoginPage = () => {
 
       if (res.success) {
         const returnedRole = res.user?.role;
-        if (returnedRole === 'super_admin')       navigate('/super-admin');
+        if (returnedRole === 'super_admin')            navigate('/super-admin');
         else if (returnedRole === 'institution_admin') navigate('/institution-admin');
-        else if (role === 'admin')                navigate('/admin');
-        else if (role === 'warden')               navigate('/warden');
-        else                                      navigate('/student');
+        else if (returnedRole === 'admin')             navigate('/admin');
+        else if (returnedRole === 'warden')            navigate('/warden');
+        else if (returnedRole === 'student')           navigate('/student');
+        else                                           navigate('/');
       }
     } catch (err) {
       if (err.response?.data?.email_unverified) {

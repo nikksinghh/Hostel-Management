@@ -44,16 +44,34 @@ const recordSuccessfulLogin = async (userDoc) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const userType = req.body.user_type || req.body.role;
+    let userType = req.body.user_type || req.body.role;
 
-    if (!email || !password || !userType || typeof email !== 'string' || typeof password !== 'string') {
+    if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
       return res.status(400).json({
         success: false,
-        message: 'Please provide email/username, password and user type (admin, warden, or student)',
+        message: 'Please provide email/username and password',
       });
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+
+    // If user_type is omitted by the client, auto-resolve account across Admin, Warden, Student collections
+    if (!userType || typeof userType !== 'string') {
+      const adminCandidate = await Admin.findOne({
+        $or: [{ email: normalizedEmail }, { username: email.trim().toLowerCase() }],
+      });
+      if (adminCandidate) {
+        userType = 'admin';
+      } else {
+        const wardenCandidate = await Warden.findOne({ email: normalizedEmail });
+        if (wardenCandidate) {
+          userType = 'warden';
+        } else {
+          userType = 'student';
+        }
+      }
+    }
+
     const cleanUserType = typeof userType === 'string' ? userType.trim().toLowerCase() : '';
 
     // 1. ADMIN / INSTITUTION_ADMIN LOGIN
