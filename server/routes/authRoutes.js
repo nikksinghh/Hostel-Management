@@ -8,8 +8,10 @@ import {
   forgotPassword,
   resetPassword,
   googleAuth,
+  verifyMfa,
+  toggleAdminMfa,
 } from '../controllers/authController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, authorize } from '../middleware/authMiddleware.js';
 import { upload, validateUploadedFile } from '../middleware/uploadMiddleware.js';
 import { rateLimit } from '../middleware/rateLimitMiddleware.js';
 
@@ -41,8 +43,10 @@ router.post('/resend-verification', resendLimiter, resendVerification);
 router.post('/forgot-password', authLimiter, forgotPassword);
 router.post('/reset-password', authLimiter, resetPassword);
 router.post('/google', authLimiter, googleAuth);
+router.post('/verify-mfa', verifyLimiter, verifyMfa);
 
 // Protected routes
 router.get('/me', protect, getMe);
+router.post('/mfa/toggle', protect, authorize('admin', 'super_admin', 'institution_admin'), toggleAdminMfa);
 
 export default router;

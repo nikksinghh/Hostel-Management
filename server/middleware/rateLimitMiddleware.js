@@ -34,7 +34,8 @@ export const rateLimit = ({
     }
 
     const ip = req.ip || req.connection?.remoteAddress || '127.0.0.1';
-    const key = `${req.baseUrl || req.path}:${ip}`;
+    const endpoint = (req.baseUrl || '') + (req.path || '');
+    const key = `${endpoint || req.originalUrl || 'api'}:${ip}`;
     const now = Date.now();
 
     const record = ipRequests.get(key);

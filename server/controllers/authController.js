@@ -1,15 +1,42 @@
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import Admin from '../models/Admin.js';
 import Warden from '../models/Warden.js';
 import Student from '../models/Student.js';
 import Institution from '../models/Institution.js';
 import SystemLog from '../models/SystemLog.js';
-import { generateToken } from '../middleware/authMiddleware.js';
+import { generateToken, getValidatedJwtSecret } from '../middleware/authMiddleware.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/emailService.js';
 
 // Helper: Secure hash with SHA-256
 const hashToken = (token) => crypto.createHash('sha256').update(String(token).trim()).digest('hex');
+
+// Unified generic credential error message to prevent account enumeration
+const INVALID_CREDENTIALS_MSG = 'Invalid credentials. Please check your email and password.';
+
+// Helper to record failed login attempts and apply lockout
+const recordFailedAttempt = async (userDoc) => {
+  if (!userDoc) return false;
+  userDoc.failed_login_attempts = (userDoc.failed_login_attempts || 0) + 1;
+  if (userDoc.failed_login_attempts >= 5) {
+    userDoc.lockout_until = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes lockout
+    await userDoc.save();
+    return true;
+  }
+  await userDoc.save();
+  return false;
+};
+
+// Helper to clear failed attempts upon successful login
+const recordSuccessfulLogin = async (userDoc) => {
+  if (!userDoc) return;
+  if (userDoc.failed_login_attempts > 0 || userDoc.lockout_until) {
+    userDoc.failed_login_attempts = 0;
+    userDoc.lockout_until = null;
+    await userDoc.save();
+  }
+};
 
 // @desc    Unified Login for Admin, Warden, Student
 // @route   POST /api/auth/login
@@ -19,7 +46,7 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
     const userType = req.body.user_type || req.body.role;
 
-    if (!email || !password || !userType) {
+    if (!email || !password || !userType || typeof email !== 'string' || typeof password !== 'string') {
       return res.status(400).json({
         success: false,
         message: 'Please provide email/username, password and user type (admin, warden, or student)',
@@ -27,18 +54,36 @@ export const login = async (req, res) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const cleanUserType = userType.trim().toLowerCase();
+    const cleanUserType = typeof userType === 'string' ? userType.trim().toLowerCase() : '';
 
     // 1. ADMIN / INSTITUTION_ADMIN LOGIN
     if (cleanUserType === 'admin') {
       const admin = await Admin.findOne({
         $or: [{ email: normalizedEmail }, { username: email.trim().toLowerCase() }],
-      }).select('+password');
+      }).select('+password +lockout_until +failed_login_attempts +mfa_enabled');
+
+      // Check account lockout
+      if (admin && admin.lockout_until && admin.lockout_until > new Date()) {
+        const remainingMinutes = Math.ceil((admin.lockout_until.getTime() - Date.now()) / 60000);
+        return res.status(423).json({
+          success: false,
+          message: `Account is temporarily locked due to excessive failed attempts. Try again in ${remainingMinutes} minute(s) or reset your password.`,
+        });
+      }
 
       if (!admin || !(await admin.matchPassword(password))) {
+        if (admin) {
+          const isNowLocked = await recordFailedAttempt(admin);
+          if (isNowLocked) {
+            return res.status(423).json({
+              success: false,
+              message: 'Account is temporarily locked due to excessive failed attempts. Try again in 15 minute(s) or reset your password.',
+            });
+          }
+        }
         return res.status(401).json({
           success: false,
-          message: 'Invalid admin credentials!',
+          message: INVALID_CREDENTIALS_MSG,
         });
       }
 
@@ -79,11 +124,44 @@ export const login = async (req, res) => {
         }
       }
 
+      // Privileged Account MFA Challenge
+      if (admin.mfa_enabled) {
+        const rawMfaOtp = crypto.randomInt(100000, 999999).toString();
+        admin.mfa_otp = hashToken(rawMfaOtp);
+        admin.mfa_otp_expires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+        admin.mfa_otp_attempts = 0;
+        await admin.save();
+
+        await sendVerificationEmail({
+          to: admin.email,
+          name: admin.full_name || 'Admin',
+          token: crypto.randomBytes(32).toString('hex'),
+          otp: rawMfaOtp,
+        });
+
+        const secret = getValidatedJwtSecret();
+        const mfaChallengeToken = jwt.sign(
+          { id: admin._id, role: admin.role, mfa_pending: true },
+          secret,
+          { expiresIn: '10m' }
+        );
+
+        return res.status(200).json({
+          success: true,
+          mfa_required: true,
+          mfa_token: mfaChallengeToken,
+          message: 'Two-factor authentication code sent to your registered email.',
+        });
+      }
+
+      await recordSuccessfulLogin(admin);
+
       // Embed the actual role and institutionId in the JWT
       const token = generateToken(admin._id, admin.role, admin.institution ? { institution: admin.institution } : {});
 
       await SystemLog.create({
         user_id: admin._id,
+        institution: admin.institution || null,
         user_type: 'admin',
         action: `${admin.role === 'super_admin' ? 'Super Admin' : 'Institution Admin'} Login`,
         description: `Admin ${admin.username || admin.email} logged in successfully`,
@@ -110,12 +188,30 @@ export const login = async (req, res) => {
     else if (cleanUserType === 'warden') {
       const warden = await Warden.findOne({ email: normalizedEmail })
         .populate('hostel')
-        .select('+password');
+        .select('+password +lockout_until +failed_login_attempts');
+
+      // Check account lockout
+      if (warden && warden.lockout_until && warden.lockout_until > new Date()) {
+        const remainingMinutes = Math.ceil((warden.lockout_until.getTime() - Date.now()) / 60000);
+        return res.status(423).json({
+          success: false,
+          message: `Account is temporarily locked due to excessive failed attempts. Try again in ${remainingMinutes} minute(s) or reset your password.`,
+        });
+      }
 
       if (!warden || !(await warden.matchPassword(password))) {
+        if (warden) {
+          const isNowLocked = await recordFailedAttempt(warden);
+          if (isNowLocked) {
+            return res.status(423).json({
+              success: false,
+              message: 'Account is temporarily locked due to excessive failed attempts. Try again in 15 minute(s) or reset your password.',
+            });
+          }
+        }
         return res.status(401).json({
           success: false,
-          message: 'Invalid warden credentials!',
+          message: INVALID_CREDENTIALS_MSG,
         });
       }
 
@@ -128,10 +224,13 @@ export const login = async (req, res) => {
         });
       }
 
+      await recordSuccessfulLogin(warden);
+
       const token = generateToken(warden._id, 'warden');
 
       await SystemLog.create({
         user_id: warden._id,
+        institution: warden.institution || null,
         user_type: 'warden',
         action: 'Warden Login',
         description: `Warden ${warden.full_name} (${warden.email}) logged in successfully`,
@@ -157,12 +256,30 @@ export const login = async (req, res) => {
     else if (cleanUserType === 'student') {
       const student = await Student.findOne({ email: normalizedEmail })
         .populate('hostel room')
-        .select('+password');
+        .select('+password +lockout_until +failed_login_attempts');
 
-      if (!student) {
-        return res.status(404).json({
+      // Check account lockout
+      if (student && student.lockout_until && student.lockout_until > new Date()) {
+        const remainingMinutes = Math.ceil((student.lockout_until.getTime() - Date.now()) / 60000);
+        return res.status(423).json({
           success: false,
-          message: 'Student account not found! Please register first.',
+          message: `Account is temporarily locked due to excessive failed attempts. Try again in ${remainingMinutes} minute(s) or reset your password.`,
+        });
+      }
+
+      if (!student || !(await student.matchPassword(password))) {
+        if (student) {
+          const isNowLocked = await recordFailedAttempt(student);
+          if (isNowLocked) {
+            return res.status(423).json({
+              success: false,
+              message: 'Account is temporarily locked due to excessive failed attempts. Try again in 15 minute(s) or reset your password.',
+            });
+          }
+        }
+        return res.status(401).json({
+          success: false,
+          message: INVALID_CREDENTIALS_MSG,
         });
       }
 
@@ -182,17 +299,13 @@ export const login = async (req, res) => {
         });
       }
 
-      if (!(await student.matchPassword(password))) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid student password!',
-        });
-      }
+      await recordSuccessfulLogin(student);
 
       const token = generateToken(student._id, 'student');
 
       await SystemLog.create({
         user_id: student._id,
+        institution: student.institution || null,
         user_type: 'student',
         action: 'Student Login',
         description: `Student ${student.full_name} (${student.roll_number}) logged in successfully`,
@@ -228,6 +341,162 @@ export const login = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Server error during login',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Verify Admin 2FA (MFA) Code
+// @route   POST /api/auth/verify-mfa
+// @access  Public (Requires valid short-lived mfa_token)
+export const verifyMfa = async (req, res) => {
+  try {
+    const { mfa_token } = req.body;
+    const mfa_code = req.body.mfa_code || req.body.otp;
+
+    if (!mfa_token || !mfa_code) {
+      return res.status(400).json({
+        success: false,
+        message: 'MFA challenge token and 6-digit code are required.',
+      });
+    }
+
+    const secret = getValidatedJwtSecret();
+    let decoded;
+    try {
+      decoded = jwt.verify(mfa_token, secret);
+    } catch (e) {
+      return res.status(401).json({
+        success: false,
+        message: 'MFA challenge token is invalid or expired. Please log in again.',
+      });
+    }
+
+    if (!decoded.mfa_pending || !decoded.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid MFA token payload.',
+      });
+    }
+
+    const admin = await Admin.findById(decoded.id).select('+mfa_otp +mfa_otp_expires +mfa_otp_attempts');
+    if (!admin) {
+      return res.status(404).json({ success: false, message: 'Admin account not found.' });
+    }
+
+    if (admin.mfa_otp_attempts >= 5) {
+      admin.mfa_otp = undefined;
+      admin.mfa_otp_expires = undefined;
+      await admin.save();
+      return res.status(400).json({
+        success: false,
+        message: 'Too many incorrect MFA attempts. This code has been invalidated. Please log in again.',
+      });
+    }
+
+    if (!admin.mfa_otp_expires || admin.mfa_otp_expires < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'MFA code has expired. Please log in again.',
+      });
+    }
+
+    const hashedInput = hashToken(mfa_code.toString().trim());
+    if (admin.mfa_otp !== hashedInput) {
+      admin.mfa_otp_attempts = (admin.mfa_otp_attempts || 0) + 1;
+      await admin.save();
+      const remaining = Math.max(0, 5 - admin.mfa_otp_attempts);
+      return res.status(400).json({
+        success: false,
+        message: `Incorrect MFA code. ${remaining} attempt(s) remaining.`,
+      });
+    }
+
+    // Clear MFA code upon successful verification
+    admin.mfa_otp = undefined;
+    admin.mfa_otp_expires = undefined;
+    admin.mfa_otp_attempts = 0;
+    await admin.save();
+
+    let institutionInfo = null;
+    if (admin.role === 'institution_admin' && admin.institution) {
+      institutionInfo = await Institution.findById(admin.institution);
+    }
+
+    const token = generateToken(admin._id, admin.role, admin.institution ? { institution: admin.institution } : {});
+
+    await SystemLog.create({
+      user_id: admin._id,
+      institution: admin.institution || null,
+      user_type: 'admin',
+      action: 'Admin 2FA Verification',
+      description: `Admin ${admin.username || admin.email} verified 2FA successfully`,
+      ip_address: req.ip || '',
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Two-factor authentication verified successfully',
+      token,
+      user: {
+        id: admin._id,
+        username: admin.username,
+        email: admin.email,
+        full_name: admin.full_name,
+        role: admin.role,
+        institution: admin.institution,
+        institution_name: institutionInfo?.name || null,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Server error during MFA verification',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Enable or Disable 2FA for Admin Account
+// @route   POST /api/auth/mfa/toggle
+// @access  Private (Admin, Super Admin, Institution Admin)
+export const toggleAdminMfa = async (req, res) => {
+  try {
+    const enable = req.body.enable !== undefined ? req.body.enable : req.body.enabled;
+    const { password } = req.body;
+
+    if (typeof enable !== 'boolean' || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide enable (boolean) and your current password.',
+      });
+    }
+
+    const admin = await Admin.findById(req.user._id).select('+password');
+    if (!admin || !(await admin.matchPassword(password))) {
+      return res.status(401).json({
+        success: false,
+        message: 'Incorrect password. Cannot update two-factor authentication settings.',
+      });
+    }
+
+    admin.mfa_enabled = enable;
+    if (!enable) {
+      admin.mfa_otp = undefined;
+      admin.mfa_otp_expires = undefined;
+      admin.mfa_otp_attempts = 0;
+    }
+    await admin.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Two-factor authentication ${enable ? 'enabled' : 'disabled'} successfully.`,
+      mfa_enabled: enable,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Server error updating MFA settings',
       error: error.message,
     });
   }
@@ -355,6 +624,7 @@ export const registerStudent = async (req, res) => {
     // System Log
     await SystemLog.create({
       user_id: newStudent._id,
+      institution: instId,
       user_type: 'student',
       action: 'Student Self-Registration',
       description: `New student registration submitted for ${newStudent.full_name} (${newStudent.roll_number})`,
@@ -395,7 +665,6 @@ export const verifyEmail = async (req, res) => {
     if (token && typeof token === 'string') {
       const hashedToken = hashToken(token);
 
-      // Search student first
       let user = await Student.findOne({ email_verification_token: hashedToken }).select(
         '+email_verification_token +email_verification_expires'
       );
@@ -440,6 +709,7 @@ export const verifyEmail = async (req, res) => {
 
       await SystemLog.create({
         user_id: user._id,
+        institution: user.institution || null,
         user_type: userRole,
         action: 'Email Verification',
         description: `Email verified successfully via single-use link for ${user.email}`,
@@ -471,7 +741,6 @@ export const verifyEmail = async (req, res) => {
 
       const normalizedEmail = email.trim().toLowerCase();
 
-      // Find user
       let user = await Student.findOne({ email: normalizedEmail }).select(
         '+email_verification_otp +email_verification_otp_expires +email_verification_expires +verification_otp_attempts'
       );
@@ -492,7 +761,6 @@ export const verifyEmail = async (req, res) => {
       }
 
       if (!user) {
-        // Non-enumerating error message
         return res.status(400).json({
           success: false,
           message: 'Invalid verification code or email.',
@@ -557,6 +825,7 @@ export const verifyEmail = async (req, res) => {
 
       await SystemLog.create({
         user_id: user._id,
+        institution: user.institution || null,
         user_type: userRole,
         action: 'Email Verification',
         description: `Email verified successfully via 6-digit OTP for ${user.email}`,
@@ -592,14 +861,12 @@ export const resendVerification = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Look up across collections
     let user = await Student.findOne({ email: normalizedEmail }).select(
       '+resend_available_at +email_verification_token +email_verification_otp'
     );
     if (!user) user = await Admin.findOne({ email: normalizedEmail }).select('+resend_available_at');
     if (!user) user = await Warden.findOne({ email: normalizedEmail }).select('+resend_available_at');
 
-    // Generic safe response to prevent user enumeration
     const genericResponse = {
       success: true,
       message: 'If an account exists with this email address, a new verification email has been sent.',
@@ -628,7 +895,7 @@ export const resendVerification = async (req, res) => {
     user.email_verification_expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     user.email_verification_otp_expires = new Date(Date.now() + 15 * 60 * 1000);
     user.verification_otp_attempts = 0;
-    user.resend_available_at = new Date(Date.now() + 60 * 1000); // 60s cooldown
+    user.resend_available_at = new Date(Date.now() + 60 * 1000);
     await user.save();
 
     await sendVerificationEmail({
@@ -663,7 +930,6 @@ export const forgotPassword = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Generic safe message to prevent email enumeration
     const genericSuccess = {
       success: true,
       message: 'If an account is associated with this email, password reset instructions have been sent.',
@@ -677,7 +943,6 @@ export const forgotPassword = async (req, res) => {
       return res.status(200).json(genericSuccess);
     }
 
-    // Generate single-use reset token
     const rawResetToken = crypto.randomBytes(32).toString('hex');
     user.reset_password_token = hashToken(rawResetToken);
     user.reset_password_expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
@@ -699,12 +964,13 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-// @desc    Complete password reset with single-use token
+// @desc    Complete password reset with single-use token & session invalidation
 // @route   POST /api/auth/reset-password
 // @access  Public
 export const resetPassword = async (req, res) => {
   try {
-    const { token, new_password } = req.body;
+    const { token } = req.body;
+    const new_password = req.body.new_password || req.body.newPassword;
 
     if (!token || typeof token !== 'string') {
       return res.status(400).json({
@@ -722,7 +988,6 @@ export const resetPassword = async (req, res) => {
 
     const hashedToken = hashToken(token);
 
-    // Search for account
     let user = await Student.findOne({ reset_password_token: hashedToken }).select(
       '+reset_password_token +reset_password_expires'
     );
@@ -753,12 +1018,16 @@ export const resetPassword = async (req, res) => {
 
     // Set new password (pre-save hook will hash)
     user.password = new_password;
+    user.password_changed_at = new Date(); // Invalidates prior JWT tokens
+    user.failed_login_attempts = 0;
+    user.lockout_until = null;
     user.reset_password_token = undefined;
     user.reset_password_expires = undefined;
     await user.save();
 
     await SystemLog.create({
       user_id: user._id,
+      institution: user.institution || null,
       user_type: user.role || 'user',
       action: 'Password Reset',
       description: `Password reset successfully completed for ${user.email}`,
@@ -805,7 +1074,6 @@ export const googleAuth = async (req, res) => {
         aud: process.env.GOOGLE_CLIENT_ID || 'test_google_client_id',
       };
     } else {
-      // Production / standard Google verification via google-auth-library
       const googleClientId = process.env.GOOGLE_CLIENT_ID;
       if (!googleClientId) {
         return res.status(500).json({
@@ -874,9 +1142,8 @@ export const googleAuth = async (req, res) => {
     // 2. Search existing student by verified email & safely link Google sub
     student = await Student.findOne({ email: googleEmail }).populate('hostel room');
     if (student) {
-      // Safe account linking
       student.google_id = googleSub;
-      student.is_email_verified = true; // Google claims verified email
+      student.is_email_verified = true;
       await student.save();
 
       if (!student.is_approved) {
@@ -949,7 +1216,6 @@ export const googleAuth = async (req, res) => {
     }
 
     // 4. User does not exist — STRICT RULE: Google Sign-In must NOT grant Admin permissions automatically!
-    // If institution_id is provided, create a pending student account
     if (institution_id) {
       const targetInst = await Institution.findById(institution_id);
       if (!targetInst || targetInst.status !== 'Approved') {
@@ -983,7 +1249,6 @@ export const googleAuth = async (req, res) => {
       });
     }
 
-    // No existing account and no institution selected
     return res.status(404).json({
       success: false,
       not_registered: true,

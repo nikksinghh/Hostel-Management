@@ -6,6 +6,12 @@ const systemLogSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       default: null,
     },
+    institution: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Institution',
+      default: null,
+      index: true,
+    },
     user_type: {
       type: String,
       enum: ['admin', 'warden', 'student', 'guest', 'system'],

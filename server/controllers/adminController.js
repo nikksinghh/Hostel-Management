@@ -174,7 +174,18 @@ export const createHostel = async (req, res) => {
 export const updateHostel = async (req, res) => {
   try {
     const filter = req.userRole === 'super_admin' ? { _id: req.params.id } : { _id: req.params.id, institution: req.institutionId };
-    const hostel = await Hostel.findOneAndUpdate(filter, req.body, { new: true, runValidators: true });
+    const { name, type, block_number, address, contact_number, gps_latitude, gps_longitude, gps_radius } = req.body;
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (type !== undefined) updateData.type = type;
+    if (block_number !== undefined) updateData.block_number = block_number;
+    if (address !== undefined) updateData.address = address;
+    if (contact_number !== undefined) updateData.contact_number = contact_number;
+    if (gps_latitude !== undefined) updateData.gps_latitude = parseFloat(gps_latitude);
+    if (gps_longitude !== undefined) updateData.gps_longitude = parseFloat(gps_longitude);
+    if (gps_radius !== undefined) updateData.gps_radius = parseFloat(gps_radius);
+
+    const hostel = await Hostel.findOneAndUpdate(filter, { $set: updateData }, { new: true, runValidators: true });
     if (!hostel) return res.status(404).json({ success: false, message: 'Hostel not found' });
 
     res.status(200).json({ success: true, message: 'Hostel updated successfully', hostel });
@@ -496,8 +507,9 @@ export const deleteStudent = async (req, res) => {
 export const getSystemLogs = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 100;
-    // super_admin sees all logs; institution_admin sees only their users' logs
-    const logs = await SystemLog.find().sort({ created_at: -1 }).limit(limit);
+    // super_admin sees all logs; institution_admin sees only their institution's logs
+    const filter = req.userRole === 'super_admin' ? {} : { institution: req.institutionId };
+    const logs = await SystemLog.find(filter).sort({ created_at: -1 }).limit(limit);
     res.status(200).json({ success: true, count: logs.length, logs });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to fetch logs', error: error.message });

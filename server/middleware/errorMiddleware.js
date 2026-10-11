@@ -5,13 +5,26 @@ export const notFound = (req, res, next) => {
   next(error);
 };
 
-// Global Error Handler
+// Global Error Handler with production sanitization
 export const errorHandler = (err, req, res, next) => {
   let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   let message = err.message || 'Internal Server Error';
 
+  // Handle Mongoose CastError (invalid ObjectId format)
+  if (err.name === 'CastError') {
+    statusCode = 400;
+    message = `Invalid resource identifier format for field: ${err.path}`;
+  }
+
+  // Handle Mongoose ValidationError
+  else if (err.name === 'ValidationError') {
+    statusCode = 400;
+    const errors = Object.values(err.errors).map((e) => e.message);
+    message = `Validation Error: ${errors.join(', ')}`;
+  }
+
   // Handle Multer specific errors
-  if (err.name === 'MulterError') {
+  else if (err.name === 'MulterError') {
     if (err.code === 'LIMIT_FILE_SIZE') {
       statusCode = 413;
       message = 'Uploaded file exceeds the maximum allowed size of 10MB.';

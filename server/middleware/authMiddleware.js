@@ -44,16 +44,23 @@ export const protect = async (req, res, next) => {
     const secret = getValidatedJwtSecret();
     const decoded = jwt.verify(token, secret);
 
+    if (decoded.mfa_pending) {
+      return res.status(401).json({
+        success: false,
+        message: 'Two-factor authentication pending. Please complete 2FA verification before accessing protected resources.',
+      });
+    }
+
     let user = null;
     if (decoded.role === 'super_admin' || decoded.role === 'institution_admin' || decoded.role === 'admin') {
-      user = await Admin.findById(decoded.id).select('-password');
+      user = await Admin.findById(decoded.id).select('-password +password_changed_at');
       if (user && user.role) {
         decoded.role = user.role; // override with precise admin role
       }
     } else if (decoded.role === 'warden') {
-      user = await Warden.findById(decoded.id).populate('hostel').select('-password');
+      user = await Warden.findById(decoded.id).populate('hostel').select('-password +password_changed_at');
     } else if (decoded.role === 'student') {
-      user = await Student.findById(decoded.id).populate('hostel room').select('-password');
+      user = await Student.findById(decoded.id).populate('hostel room').select('-password +password_changed_at');
     }
 
     if (!user) {
@@ -61,6 +68,17 @@ export const protect = async (req, res, next) => {
         success: false,
         message: 'User belonging to this token no longer exists',
       });
+    }
+
+    // Check if password was changed after token was issued
+    if (user.password_changed_at) {
+      const changedTimestamp = parseInt(user.password_changed_at.getTime() / 1000, 10);
+      if (decoded.iat < changedTimestamp) {
+        return res.status(401).json({
+          success: false,
+          message: 'Password was changed recently. Please log in again.',
+        });
+      }
     }
 
     req.user = user;

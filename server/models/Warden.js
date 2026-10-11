@@ -68,6 +68,21 @@ const wardenSchema = new mongoose.Schema(
       sparse: true,
       index: true,
     },
+    password_changed_at: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+    failed_login_attempts: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
+    lockout_until: {
+      type: Date,
+      default: null,
+      select: false,
+    },
   },
   { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } }
 );
